@@ -1,0 +1,15 @@
+[Unit]
+Description=ngrok tunnels (Eco Fam + Chorus media + other apps)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=micheal
+Group=micheal
+ExecStart=/usr/local/bin/ngrok start --all --config /home/micheal/.config/ngrok/ngrok.yml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

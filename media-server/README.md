@@ -125,14 +125,30 @@ sudo systemctl daemon-reload
 sudo systemctl restart chorus-media
 ```
 
-**ngrok (multiple apps):** use `ngrok.yml.example` — copy to `~/.config/ngrok/ngrok.yml`, set your other app ports + authtoken, then:
+### Run ngrok on boot (systemd)
 
+1. Confirm ngrok path:
 ```bash
-ngrok start --all
+which ngrok
+# often /usr/local/bin/ngrok or /usr/bin/ngrok
 ```
 
-Copy the **chorus-media** HTTPS URL into `PUBLIC_BASE_URL` (media-server `.env`) and Vercel `MEDIA_API_URL`, then:
+2. Make sure `~/.config/ngrok/ngrok.yml` is correct (each app has its own domain/URL; only one tunnel should use a reserved domain).
 
+3. Install the service:
 ```bash
-sudo systemctl restart chorus-media
+cd ~/karaoke && git pull
+# edit ExecStart if `which ngrok` is not /usr/local/bin/ngrok
+sudo cp ~/karaoke/media-server/ngrok.service /etc/systemd/system/ngrok.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now ngrok
+sudo systemctl status ngrok --no-pager
 ```
+
+Useful:
+```bash
+sudo systemctl restart ngrok
+sudo journalctl -u ngrok -f
+```
+
+Stop any manual ngrok first (`pkill ngrok`) so only the service runs.
