@@ -1,17 +1,66 @@
-# Chorus media server (Ubuntu)
+# Chorus media server (Ubuntu / local + ngrok)
 
 Stores and streams karaoke MP4s. The Vercel/Next app talks to this for the song library.
 
-## Run on Ubuntu
+## Quick path with ngrok
+
+Terminal 1 — start the media server:
 
 ```bash
 cd media-server
-cp .env.example .env   # edit secrets + public URL
+cp .env.example .env
 npm install
 npm start
 ```
 
-Default: `http://127.0.0.1:4050`
+Terminal 2 — expose it:
+
+```bash
+ngrok http 4050
+```
+
+Copy the HTTPS forwarding URL (example: `https://abc123.ngrok-free.app`).
+
+### Put that URL in both places
+
+**1. `media-server/.env`**
+```env
+MEDIA_API_SECRET=change-me-to-a-long-random-string
+PORT=4050
+MEDIA_ROOT=./songs
+PUBLIC_BASE_URL=https://abc123.ngrok-free.app
+CORS_ORIGINS=https://your-app.vercel.app,http://localhost:3000
+```
+
+Restart `npm start` after changing `PUBLIC_BASE_URL` (song playback links use it).
+
+**2. Vercel project env vars** (Settings → Environment Variables)
+```env
+MEDIA_API_URL=https://abc123.ngrok-free.app
+MEDIA_API_SECRET=change-me-to-a-long-random-string
+```
+
+Redeploy the Vercel app after saving.
+
+### Notes
+
+- Free ngrok URLs change every restart — update `PUBLIC_BASE_URL`, Vercel `MEDIA_API_URL`, and redeploy (or use a reserved ngrok domain).
+- Browser uploads + video playback both hit the ngrok URL.
+- If ngrok shows an interstitial page, use a free-account header or paid plan; for API calls from the server, add `ngrok-skip-browser-warning: true` if needed.
+
+Optional ngrok config (`ngrok.yml`):
+
+```yaml
+version: "3"
+agents:
+  # or classic:
+# tunnels:
+#   chorus-media:
+#     addr: 4050
+#     proto: http
+```
+
+Classic one-liner is enough: `ngrok http 4050`.
 
 ## Environment
 
@@ -20,10 +69,10 @@ Default: `http://127.0.0.1:4050`
 | `PORT` | Listen port (default `4050`) |
 | `MEDIA_API_SECRET` | Shared secret with the Next.js app |
 | `MEDIA_ROOT` | Folder for MP4s + `library.json` |
-| `PUBLIC_BASE_URL` | Public URL used in song playback links |
-| `CORS_ORIGINS` | Comma-separated allowed web origins (your Vercel URL) |
+| `PUBLIC_BASE_URL` | Public URL used in song playback links (ngrok HTTPS URL) |
+| `CORS_ORIGINS` | Comma-separated allowed web origins (your Vercel URL + localhost) |
 
-## Nginx example
+## Nginx (when you stop using ngrok)
 
 ```nginx
 server {
@@ -40,8 +89,6 @@ server {
   }
 }
 ```
-
-Use HTTPS (Certbot). Set `PUBLIC_BASE_URL=https://media.example.com`.
 
 ## systemd (optional)
 

@@ -8,17 +8,22 @@ Party karaoke web app: **songs live on your Ubuntu server**, the web UI can run 
 - **Next.js app (Vercel or Ubuntu)** — rooms, queue, phone/TV UI
 - Uploads go **directly from the browser → Ubuntu** (not through Vercel Blob)
 
-## 1) Start the Ubuntu media server
+## 1) Start the Ubuntu media server (+ ngrok)
 
 ```bash
 cd media-server
 cp .env.example .env
-# set MEDIA_API_SECRET, PUBLIC_BASE_URL, CORS_ORIGINS
 npm install
 npm start
 ```
 
-Put Nginx in front with HTTPS. See `media-server/README.md`.
+In another terminal:
+
+```bash
+ngrok http 4050
+```
+
+Set `PUBLIC_BASE_URL` in `media-server/.env` to the ngrok HTTPS URL, restart the media server, and set the same URL as `MEDIA_API_URL` on Vercel (plus matching `MEDIA_API_SECRET`). Details: `media-server/README.md`.
 
 ## 2) Run the web app locally
 

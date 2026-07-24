@@ -35,12 +35,18 @@ export function getPublicUploadUrl() {
   return `${mediaApiUrl()}/upload`;
 }
 
-async function mediaFetch(pathname: string, init: RequestInit = {}) {
-  const headers = new Headers(init.headers);
+function mediaHeaders(initHeaders?: HeadersInit) {
+  const headers = new Headers(initHeaders);
   headers.set("x-media-secret", mediaSecret());
+  // Avoid ngrok free-tier browser warning HTML on server-side fetches
+  headers.set("ngrok-skip-browser-warning", "true");
+  return headers;
+}
+
+async function mediaFetch(pathname: string, init: RequestInit = {}) {
   const res = await fetch(`${mediaApiUrl()}${pathname}`, {
     ...init,
-    headers,
+    headers: mediaHeaders(init.headers),
     cache: "no-store",
   });
   const text = await res.text();

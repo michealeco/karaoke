@@ -64,7 +64,10 @@ export function UploadForm({ onUploaded }: Props) {
 
         const res = await fetch(latest.uploadUrl, {
           method: "POST",
-          headers: { Authorization: `Bearer ${latest.token}` },
+          headers: {
+            Authorization: `Bearer ${latest.token}`,
+            "ngrok-skip-browser-warning": "true",
+          },
           body: form,
         });
         const data = await readResponseJson<{ song?: Song; error?: string }>(res);
