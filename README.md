@@ -4,9 +4,9 @@ Party karaoke web app: **songs live on your Ubuntu server**, the web UI can run 
 
 ## Architecture
 
-- **Ubuntu `media-server/`** — stores MP4s, library JSON, streams video (with HTTP range)
-- **Next.js app (Vercel or Ubuntu)** — rooms, queue, phone/TV UI
-- Uploads go **directly from the browser → Ubuntu** (not through Vercel Blob)
+- **Ubuntu `media-server/`** — songs (MP4s) **and** room/queue JSON
+- **Next.js on Vercel** — UI only; talks to Ubuntu over your ngrok URL
+- **No Vercel Blob required** when `MEDIA_API_URL` + `MEDIA_API_SECRET` are set
 
 ## 1) Start the Ubuntu media server (+ ngrok)
 
@@ -39,12 +39,13 @@ If `MEDIA_API_URL` is unset, local mode saves MP4s under `public/uploads/` (dev 
 ## 3) Deploy the web app to Vercel
 
 1. Push this repo and import it in Vercel.
-2. Set env vars:
-   - `MEDIA_API_URL` = `https://media.example.com`
-   - `MEDIA_API_SECRET` = same secret as Ubuntu
-3. Create a **Blob** store for **room/queue state only** (not songs).
-4. On Ubuntu media-server, set `CORS_ORIGINS` to your Vercel URL.
-5. Redeploy.
+2. Set env vars (same as Ubuntu/ngrok):
+   - `MEDIA_API_URL` = `https://….ngrok-free.app`
+   - `MEDIA_API_SECRET` = same secret as `media-server/.env`
+3. On Ubuntu media-server, set `CORS_ORIGINS` to your Vercel URL.
+4. Redeploy.
+
+Vercel Blob is **not** required — Ubuntu holds songs and room state.
 
 ## How to use
 
@@ -57,5 +58,5 @@ If `MEDIA_API_URL` is unset, local mode saves MP4s under `public/uploads/` (dev 
 ## Stack
 
 - Next.js App Router + TypeScript + Tailwind CSS v4
-- Ubuntu Node media server (Express) for MP4 library/streaming
-- Vercel Blob optional for room state when hosted on Vercel
+- Ubuntu Node media server for MP4s + room/queue storage
+- ngrok (or Nginx) to expose Ubuntu to Vercel

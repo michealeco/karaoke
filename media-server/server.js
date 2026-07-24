@@ -24,6 +24,20 @@ const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "*")
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 12);
 
 await mkdir(MEDIA_ROOT, { recursive: true });
+const META_ROOT = path.join(MEDIA_ROOT, "meta");
+await mkdir(META_ROOT, { recursive: true });
+
+function metaFilePath(key) {
+  const safe = String(key)
+    .replace(/\\/g, "/")
+    .replace(/\.\./g, "")
+    .replace(/[^a-zA-Z0-9._/-]/g, "_");
+  const full = path.join(META_ROOT, safe);
+  if (!full.startsWith(META_ROOT)) {
+    throw new Error("Invalid meta key");
+  }
+  return full;
+}
 
 const app = express();
 app.use(
@@ -105,7 +119,7 @@ function requireServerAuth(req, res, next) {
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, mediaRoot: MEDIA_ROOT });
+  res.json({ ok: true, mediaRoot: MEDIA_ROOT, metaRoot: META_ROOT });
 });
 
 app.get("/library", async (req, res) => {
@@ -192,6 +206,44 @@ app.delete("/songs/:id", requireServerAuth, async (req, res) => {
     const next = songs.filter((s) => s.id !== req.params.id);
     await writeLibrary(next);
     await unlink(path.join(MEDIA_ROOT, song.filename)).catch(() => undefined);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// JSON meta store (rooms / queue state) — Ubuntu is the database
+app.get("/meta/*key", requireServerAuth, async (req, res) => {
+  try {
+    const key = String(req.params.key || "").replace(/^\/+/, "");
+    const filePath = metaFilePath(key);
+    const raw = await readFile(filePath, "utf8");
+    res.type("json").send(raw);
+  } catch {
+    res.status(404).json({ error: "Not found" });
+  }
+});
+
+app.put("/meta/*key", requireServerAuth, async (req, res) => {
+  try {
+    const key = String(req.params.key || "").replace(/^\/+/, "");
+    const filePath = metaFilePath(key);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, JSON.stringify(req.body ?? null, null, 2), "utf8");
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+app.delete("/meta/*key", requireServerAuth, async (req, res) => {
+  try {
+    const key = String(req.params.key || "").replace(/^\/+/, "");
+    await unlink(metaFilePath(key)).catch(() => undefined);
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({

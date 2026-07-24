@@ -1,6 +1,12 @@
 import { mkdir, readFile, writeFile, unlink, access } from "fs/promises";
 import path from "path";
 import { put, list, del } from "@vercel/blob";
+import {
+  isRemoteMediaEnabled,
+  remoteDeleteJson,
+  remoteReadJson,
+  remoteWriteJson,
+} from "./media";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
@@ -14,10 +20,10 @@ export function isBlobEnabled() {
 }
 
 function requireStorage() {
-  // Vercel serverless has a read-only filesystem — Blob is required there.
-  if (process.env.VERCEL && !useBlob()) {
+  // Prefer Ubuntu media server. Blob is optional fallback only.
+  if (process.env.VERCEL && !isRemoteMediaEnabled() && !useBlob()) {
     throw new Error(
-      "Storage is not configured. In the Vercel project, open Storage → create a Blob store, then redeploy so BLOB_READ_WRITE_TOKEN is set.",
+      "Ubuntu storage is not configured. Set MEDIA_API_URL and MEDIA_API_SECRET on Vercel to your ngrok/media-server URL, then redeploy.",
     );
   }
 }
@@ -40,6 +46,10 @@ async function parseJsonText<T>(raw: string, fallback: T): Promise<T> {
 
 export async function readJson<T>(key: string, fallback: T): Promise<T> {
   requireStorage();
+
+  if (isRemoteMediaEnabled()) {
+    return remoteReadJson(key, fallback);
+  }
 
   if (useBlob()) {
     try {
@@ -68,6 +78,12 @@ export async function readJson<T>(key: string, fallback: T): Promise<T> {
 
 export async function writeJson(key: string, value: unknown): Promise<void> {
   requireStorage();
+
+  if (isRemoteMediaEnabled()) {
+    await remoteWriteJson(key, value);
+    return;
+  }
+
   const body = JSON.stringify(value, null, 2);
 
   if (useBlob()) {
@@ -88,6 +104,11 @@ export async function writeJson(key: string, value: unknown): Promise<void> {
 
 export async function deleteJson(key: string): Promise<void> {
   requireStorage();
+
+  if (isRemoteMediaEnabled()) {
+    await remoteDeleteJson(key);
+    return;
+  }
 
   if (useBlob()) {
     const { blobs } = await list({ prefix: `meta/${key}` });
@@ -110,7 +131,7 @@ export async function saveLocalUpload(
 ): Promise<{ url: string; filename: string }> {
   if (process.env.VERCEL) {
     throw new Error(
-      "Local uploads are not available on Vercel. Use the Blob client uploader.",
+      "Local uploads are not available on Vercel. Songs upload to your Ubuntu media server.",
     );
   }
 
