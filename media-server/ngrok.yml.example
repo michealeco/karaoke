@@ -1,0 +1,24 @@
+# Copy to ~/.config/ngrok/ngrok.yml on Ubuntu, then fill in ports + authtoken.
+# Get token: https://dashboard.ngrok.com/get-started/your-authtoken
+#
+#   mkdir -p ~/.config/ngrok
+#   cp ngrok.yml.example ~/.config/ngrok/ngrok.yml
+#   nano ~/.config/ngrok/ngrok.yml
+#   ngrok start --all
+
+version: "2"
+authtoken: REPLACE_WITH_YOUR_NGROK_AUTHTOKEN
+
+tunnels:
+  # Rename / change addr to match your existing apps
+  app1:
+    addr: 3000
+    proto: http
+  app2:
+    addr: 8080
+    proto: http
+
+  # Chorus karaoke media server
+  chorus-media:
+    addr: 4050
+    proto: http

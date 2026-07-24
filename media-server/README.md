@@ -125,4 +125,14 @@ sudo systemctl daemon-reload
 sudo systemctl restart chorus-media
 ```
 
-**ngrok note:** systemd keeps the media server up after reboot, but free ngrok still needs to be started (or use a paid reserved domain + ngrok service). Media server alone listens on port `4050`.
+**ngrok (multiple apps):** use `ngrok.yml.example` — copy to `~/.config/ngrok/ngrok.yml`, set your other app ports + authtoken, then:
+
+```bash
+ngrok start --all
+```
+
+Copy the **chorus-media** HTTPS URL into `PUBLIC_BASE_URL` (media-server `.env`) and Vercel `MEDIA_API_URL`, then:
+
+```bash
+sudo systemctl restart chorus-media
+```
