@@ -1,0 +1,19 @@
+[Unit]
+Description=Chorus karaoke media server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=micheal
+Group=micheal
+WorkingDirectory=/home/micheal/karaoke/media-server
+EnvironmentFile=/home/micheal/karaoke/media-server/.env
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=3
+# Large karaoke uploads
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

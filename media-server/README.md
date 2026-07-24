@@ -90,21 +90,39 @@ server {
 }
 ```
 
-## systemd (optional)
+## Run as a systemd service (survives reboot)
 
-```ini
-[Unit]
-Description=Chorus media server
-After=network.target
+From the Ubuntu server (paths match `~/karaoke/media-server` as user `micheal`):
 
-[Service]
-Type=simple
-WorkingDirectory=/opt/chorus/media-server
-EnvironmentFile=/opt/chorus/media-server/.env
-ExecStart=/usr/bin/npm start
-Restart=always
-User=www-data
+```bash
+cd ~/karaoke
+git pull
+cd media-server
 
-[Install]
-WantedBy=multi-user.target
+# Make sure .env exists and npm deps are installed
+cp -n .env.example .env
+nano .env   # set MEDIA_API_SECRET, PUBLIC_BASE_URL, CORS_ORIGINS
+npm install
+
+# Install the service
+sudo cp chorus-media.service /etc/systemd/system/chorus-media.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now chorus-media
 ```
+
+Useful commands:
+
+```bash
+sudo systemctl status chorus-media
+sudo systemctl restart chorus-media
+sudo journalctl -u chorus-media -f
+```
+
+If your username or clone path is different, edit `User=`, `Group=`, `WorkingDirectory=`, and `EnvironmentFile=` in `/etc/systemd/system/chorus-media.service`, then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart chorus-media
+```
+
+**ngrok note:** systemd keeps the media server up after reboot, but free ngrok still needs to be started (or use a paid reserved domain + ngrok service). Media server alone listens on port `4050`.
