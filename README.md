@@ -49,10 +49,10 @@ Put Nginx/Caddy in front if you want HTTPS and a domain.
 ## How to use
 
 1. Open **Library** and upload karaoke MP4s (title + artist).
-2. On the home page, **Start a room** (you become host).
+2. On the home page, **Start a room** or **Start on TV**.
 3. Share the room code. Guests join from their phones.
 4. Anyone can search the library and add songs to the queue.
-5. Put the host device on the TV / big screen and hit Play.
+5. On the big screen, open **TV display** for a 10-foot layout (remote: Enter/Space, ←/→, Esc).
 
 ## Stack
 

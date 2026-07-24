@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
-import Link from "next/link";
+import { SiteChrome } from "@/components/SiteChrome";
 import "./globals.css";
 
 const syne = Syne({
@@ -28,18 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${syne.variable} ${dmSans.variable} h-full`}>
       <body className="min-h-full antialiased">
-        <div className="site-shell">
-          <nav className="site-nav">
-            <Link href="/" className="brand">
-              Chorus
-            </Link>
-            <div className="nav-links">
-              <Link href="/library">Library</Link>
-              <Link href="/">Rooms</Link>
-            </div>
-          </nav>
-          {children}
-        </div>
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

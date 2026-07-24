@@ -11,7 +11,7 @@ export function HomeActions() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function createRoom() {
+  async function createRoom(tv: boolean) {
     setBusy(true);
     setError(null);
     try {
@@ -20,14 +20,16 @@ export function HomeActions() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not create room");
       setHostToken(data.room.code, data.hostToken);
-      router.push(`/room/${data.room.code}`);
+      router.push(
+        tv ? `/room/${data.room.code}?tv=1` : `/room/${data.room.code}`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create room");
       setBusy(false);
     }
   }
 
-  async function joinRoom(e: React.FormEvent) {
+  async function joinRoom(e: React.FormEvent, tv = false) {
     e.preventDefault();
     const cleaned = code.trim().toUpperCase();
     if (!cleaned) return;
@@ -39,7 +41,7 @@ export function HomeActions() {
       setBusy(false);
       return;
     }
-    router.push(`/room/${cleaned}`);
+    router.push(tv ? `/room/${cleaned}?tv=1` : `/room/${cleaned}`);
   }
 
   return (
@@ -57,14 +59,22 @@ export function HomeActions() {
         <button
           type="button"
           className="btn btn-primary btn-large"
-          onClick={createRoom}
+          onClick={() => createRoom(false)}
           disabled={busy}
         >
           {busy ? "Opening…" : "Start a room"}
         </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-large"
+          onClick={() => createRoom(true)}
+          disabled={busy}
+        >
+          Start on TV
+        </button>
       </div>
 
-      <form className="join-form" onSubmit={joinRoom}>
+      <form className="join-form" onSubmit={(e) => joinRoom(e, false)}>
         <input
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -74,6 +84,14 @@ export function HomeActions() {
         />
         <button type="submit" className="btn btn-ghost btn-large" disabled={busy}>
           Join
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-large"
+          disabled={busy || !code.trim()}
+          onClick={(e) => joinRoom(e, true)}
+        >
+          Open on TV
         </button>
       </form>
 

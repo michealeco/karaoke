@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RoomPublic, Song } from "@/lib/types";
 import {
@@ -15,14 +17,25 @@ type Props = {
 };
 
 export function RoomClient({ code }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tvMode = searchParams.get("tv") === "1";
+
   const [room, setRoom] = useState<RoomPublic | null>(null);
   const [name, setName] = useState("Guest");
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"queue" | "library">("queue");
   const [busy, setBusy] = useState(false);
+  const [hudVisible, setHudVisible] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSeekVersion = useRef(-1);
   const applyingRemote = useRef(false);
+  const hideHudTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roomRef = useRef<RoomPublic | null>(null);
+  const busyRef = useRef(false);
+
+  roomRef.current = room;
+  busyRef.current = busy;
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/rooms/${code}`, {
@@ -83,29 +96,81 @@ export function RoomClient({ code }: Props) {
     }
   }, [room]);
 
-  async function control(
-    action: "play" | "pause" | "skip" | "prev" | "seek",
-    positionMs?: number,
-  ) {
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/rooms/${code}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...hostHeaders(code),
-        },
-        body: JSON.stringify({ action, positionMs }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Action failed");
-      setRoom(data.room);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed");
-    } finally {
-      setBusy(false);
+  const bumpHud = useCallback(() => {
+    if (!tvMode) return;
+    setHudVisible(true);
+    if (hideHudTimer.current) clearTimeout(hideHudTimer.current);
+    hideHudTimer.current = setTimeout(() => setHudVisible(false), 5000);
+  }, [tvMode]);
+
+  useEffect(() => {
+    if (!tvMode) return;
+    bumpHud();
+    const onMove = () => bumpHud();
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("keydown", onMove);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("keydown", onMove);
+      if (hideHudTimer.current) clearTimeout(hideHudTimer.current);
+    };
+  }, [tvMode, bumpHud]);
+
+  const control = useCallback(
+    async (
+      action: "play" | "pause" | "skip" | "prev" | "seek",
+      positionMs?: number,
+    ) => {
+      if (busyRef.current) return;
+      setBusy(true);
+      bumpHud();
+      try {
+        const res = await fetch(`/api/rooms/${code}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...hostHeaders(code),
+          },
+          body: JSON.stringify({ action, positionMs }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Action failed");
+        setRoom(data.room);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Action failed");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [code, bumpHud],
+  );
+
+  const isHost = room?.isHost || Boolean(getHostToken(code));
+
+  useEffect(() => {
+    if (!tvMode || !isHost) return;
+
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      if (e.key === " " || e.key === "k" || e.key === "K" || e.key === "Enter") {
+        e.preventDefault();
+        void control(roomRef.current?.status === "playing" ? "pause" : "play");
+      } else if (e.key === "ArrowRight" || e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        void control("skip");
+      } else if (e.key === "ArrowLeft" || e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        void control("prev");
+      } else if (e.key === "Escape") {
+        router.push(`/room/${code}`);
+      }
     }
-  }
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [tvMode, isHost, code, router, control]);
 
   async function addSong(song: Song) {
     setBusy(true);
@@ -144,7 +209,134 @@ export function RoomClient({ code }: Props) {
     setDisplayName(value);
   }
 
-  const isHost = room?.isHost || Boolean(getHostToken(code));
+  function setTvMode(enabled: boolean) {
+    router.push(enabled ? `/room/${code}?tv=1` : `/room/${code}`);
+  }
+
+  const queue = room?.queueSongs ?? [];
+  const upNext = queue.filter((_, i) => i > (room?.currentIndex ?? -1)).slice(0, 5);
+
+  if (tvMode) {
+    return (
+      <div className={`tv-shell ${hudVisible ? "hud-on" : "hud-off"}`}>
+        <div className="tv-safe">
+          <header className="tv-top">
+            <div className="tv-brand-block">
+              <p className="eyebrow">Chorus</p>
+              <p className="tv-join">
+                Join on your phone · room <strong>{code}</strong>
+              </p>
+            </div>
+            <div className="tv-top-actions">
+              <span className="role-pill">{isHost ? "TV host" : "TV display"}</span>
+              <Link href={`/room/${code}`} className="btn btn-ghost btn-tv">
+                Exit TV
+              </Link>
+            </div>
+          </header>
+
+          {error ? <p className="form-error room-error">{error}</p> : null}
+
+          <div className="tv-grid">
+            <section className="tv-stage">
+              <div className="tv-stage-frame">
+                {room?.nowPlaying ? (
+                  <video
+                    ref={videoRef}
+                    className="stage-video"
+                    playsInline
+                    controls={false}
+                    onEnded={() => {
+                      if (isHost) void control("skip");
+                    }}
+                  />
+                ) : (
+                  <div className="stage-empty tv-empty">
+                    <p>Waiting for the first song…</p>
+                    <p className="tv-empty-hint">
+                      Guests can add tracks from their phones using code{" "}
+                      <strong>{code}</strong>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="tv-now">
+                <div>
+                  <p className="eyebrow">Now playing</p>
+                  <h1>{room?.nowPlaying?.title ?? "Nothing queued"}</h1>
+                  <p className="tv-artist">
+                    {room?.nowPlaying?.artist ?? "Queue a song from a phone"}
+                  </p>
+                </div>
+
+                {isHost ? (
+                  <div className="tv-transport">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-tv"
+                      disabled={busy}
+                      onClick={() => control("prev")}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-tv btn-tv-main"
+                      disabled={busy || !room?.nowPlaying}
+                      onClick={() =>
+                        control(room?.status === "playing" ? "pause" : "play")
+                      }
+                    >
+                      {room?.status === "playing" ? "Pause" : "Play"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-tv"
+                      disabled={busy}
+                      onClick={() => control("skip")}
+                    >
+                      Skip
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {isHost ? (
+                <p className="tv-remote-hint">
+                  Remote: Enter / Space play · ← prev · → skip · Esc exit
+                </p>
+              ) : null}
+            </section>
+
+            <aside className="tv-rail">
+              <h2>Up next</h2>
+              <ul className="tv-queue">
+                {upNext.map((item, index) => (
+                  <li key={item.id} className="tv-queue-item">
+                    <span className="tv-queue-num">{index + 1}</span>
+                    <div>
+                      <strong>{item.song?.title ?? "Missing song"}</strong>
+                      <span>
+                        {item.song?.artist ?? "—"} · {item.addedBy}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+                {!upNext.length ? (
+                  <li className="tv-queue-empty">No songs waiting</li>
+                ) : null}
+              </ul>
+
+              <div className="tv-queue-count">
+                {queue.length} in queue
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="room-shell">
@@ -161,7 +353,16 @@ export function RoomClient({ code }: Props) {
             placeholder="Guest"
           />
         </label>
-        <div className="role-pill">{isHost ? "Host controls" : "Guest"}</div>
+        <div className="room-top-right">
+          <div className="role-pill">{isHost ? "Host controls" : "Guest"}</div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setTvMode(true)}
+          >
+            TV display
+          </button>
+        </div>
       </header>
 
       {error ? <p className="form-error room-error">{error}</p> : null}

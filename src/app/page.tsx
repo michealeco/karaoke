@@ -7,8 +7,8 @@ export default function HomePage() {
         <p className="hero-brand">Chorus</p>
         <h2>Party karaoke with a shared queue.</h2>
         <p className="hero-copy">
-          Upload MP4s to your library, open a room, and let everyone add the next
-          song from their phone.
+          Put the TV display on the big screen, then let everyone queue songs from
+          their phones.
         </p>
         <HomeActions />
       </div>
