@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import {
   getStoredDevice,
   setStoredDevice,
+  useLayoutMode,
   type LayoutMode,
 } from "@/lib/useLayoutMode";
 import { setDisplayName, setHostToken } from "@/lib/client";
 
 export function HomeActions() {
   const router = useRouter();
+  const viewport = useLayoutMode();
   const [device, setDevice] = useState<LayoutMode>("phone");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -18,21 +20,12 @@ export function HomeActions() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = getStoredDevice();
-    if (stored) {
-      setDevice(stored);
-      return;
-    }
-    const isTv = window.matchMedia(
-      "(min-width: 1024px) and (min-height: 640px) and (orientation: landscape)",
-    ).matches;
-    setDevice(isTv ? "tv" : "phone");
-  }, []);
+    setDevice(getStoredDevice() ?? viewport);
+  }, [viewport]);
 
   function pickDevice(next: LayoutMode) {
     setDevice(next);
     setStoredDevice(next);
-    document.documentElement.dataset.device = next;
   }
 
   async function createRoom() {
@@ -88,6 +81,11 @@ export function HomeActions() {
           <span>Stage display for the party</span>
         </button>
       </div>
+
+      <p className="layout-hint">
+        Layout follows your screen size — narrow = phone, wide landscape = TV.
+        {viewport === "tv" ? " This screen is in TV layout now." : " This screen is in phone layout now."}
+      </p>
 
       <label className="name-field home-name">
         <span>Your name</span>

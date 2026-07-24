@@ -183,6 +183,13 @@ input {
   box-shadow: inset 0 0 0 1px rgba(226, 177, 90, 0.25);
 }
 
+.layout-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .cta-row,
 .join-form {
   display: flex;
@@ -582,69 +589,92 @@ input {
   padding: 1rem;
 }
 
-/* ——— Smart TV layout ——— */
-html[data-device="tv"] .site-shell:not(.site-shell-tv) {
-  width: min(1100px, calc(100% - 4rem));
+/* ——— Responsive scale-up: tablet+ / smart TV landscape ——— */
+@media (min-width: 900px) and (min-height: 500px) and (orientation: landscape) {
+  .site-shell:not(.site-shell-tv) {
+    width: min(1100px, calc(100% - 4rem));
+  }
+
+  .hero {
+    align-items: center;
+    padding: 4vh 0;
+  }
+
+  .hero-brand {
+    font-size: clamp(5rem, 10vw, 8rem);
+  }
+
+  .hero h2 {
+    font-size: clamp(2rem, 3.5vw, 2.8rem);
+    max-width: 20ch;
+  }
+
+  .hero-copy {
+    font-size: 1.35rem;
+    max-width: 36ch;
+  }
+
+  .home-actions {
+    max-width: 720px;
+    gap: 1.1rem;
+  }
+
+  .device-card {
+    min-height: 120px;
+    padding: 1.35rem 1.25rem;
+  }
+
+  .device-card strong {
+    font-size: 1.45rem;
+  }
+
+  .device-card span {
+    font-size: 1.05rem;
+  }
+
+  .layout-hint {
+    font-size: 1.05rem;
+  }
+
+  .btn-xl,
+  .join-form input,
+  .name-field input {
+    min-height: 72px;
+    font-size: 1.25rem;
+  }
+
+  .nav-links a {
+    min-height: 64px;
+    font-size: 1.15rem;
+    padding: 0.9rem 1.1rem;
+  }
+
+  .page-header h1 {
+    font-size: 3rem;
+  }
+
+  .song-row,
+  .btn-small {
+    min-height: 64px;
+    font-size: 1.1rem;
+  }
+
+  .panel {
+    padding: 1.5rem;
+  }
+
+  .search-input {
+    min-height: 64px;
+    font-size: 1.15rem;
+  }
 }
 
-html[data-device="tv"] .hero {
-  align-items: center;
-  padding: 4vh 0;
-}
-
-html[data-device="tv"] .hero-brand {
-  font-size: clamp(5rem, 10vw, 8rem);
-}
-
-html[data-device="tv"] .hero h2 {
-  font-size: clamp(2rem, 3.5vw, 2.8rem);
-  max-width: 20ch;
-}
-
-html[data-device="tv"] .hero-copy {
-  font-size: 1.35rem;
-  max-width: 36ch;
-}
-
-html[data-device="tv"] .home-actions {
-  max-width: 720px;
-  gap: 1.1rem;
-}
-
-html[data-device="tv"] .device-card {
-  min-height: 120px;
-  padding: 1.35rem 1.25rem;
-}
-
-html[data-device="tv"] .device-card strong {
-  font-size: 1.45rem;
-}
-
-html[data-device="tv"] .device-card span {
-  font-size: 1.05rem;
-}
-
-html[data-device="tv"] .btn-xl,
-html[data-device="tv"] .join-form input,
-html[data-device="tv"] .name-field input {
-  min-height: 72px;
-  font-size: 1.25rem;
-}
-
-html[data-device="tv"] .nav-links a {
-  min-height: 64px;
-  font-size: 1.15rem;
-  padding: 0.9rem 1.1rem;
-}
-
-html[data-device="tv"] .page-header h1 {
-  font-size: 3rem;
-}
-
-html[data-device="tv"] .song-row,
-html[data-device="tv"] .btn-small {
-  min-height: 64px;
-  font-size: 1.1rem;
+/* Keep data-device in sync for JS-driven room chrome */
+html[data-device="tv"] body:has(.tv-shell),
+body:has(.tv-shell) {
+  overflow: hidden;
+  height: 100%;
+  background: #05080d;
 }
 
 .site-shell-tv {
@@ -653,13 +683,6 @@ html[data-device="tv"] .btn-small {
   margin: 0;
   padding: 0;
   height: 100%;
-}
-
-html[data-device="tv"] body,
-body:has(.tv-shell) {
-  overflow: hidden;
-  height: 100%;
-  background: #05080d;
 }
 
 .tv-shell {
@@ -894,6 +917,29 @@ body:has(.tv-shell) {
 
   .home-actions {
     max-width: 440px;
+  }
+
+  .join-form .btn-xl {
+    min-width: 8rem;
+  }
+}
+
+/* Phone portrait: stack join controls cleanly */
+@media (max-width: 420px) {
+  .join-form {
+    flex-direction: column;
+  }
+
+  .join-form .btn-xl {
+    width: 100%;
+  }
+
+  .device-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-brand {
+    font-size: clamp(2.8rem, 16vw, 3.6rem);
   }
 }
 

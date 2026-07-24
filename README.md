@@ -49,8 +49,10 @@ Put Nginx/Caddy in front if you want HTTPS and a domain.
 ## How to use
 
 1. Open **Library** on a phone/laptop and upload karaoke MP4s.
-2. On the home page, pick **Phone** or **Smart TV**, then start or join a room.
-3. TV shows the stage + up next. Phones search the library and add to the queue.
+2. Start or join a room. Layout is responsive:
+   - **Narrow / portrait** → phone controller (queue & search)
+   - **Wide landscape** → smart TV stage
+3. Phones add songs; the TV shows video + up next.
 4. Host transport works on both; TV remotes use Enter/Space and arrow keys.
 
 ## Stack
