@@ -47,7 +47,8 @@ function mediaHeaders(initHeaders?: HeadersInit) {
 }
 
 export async function mediaFetch(pathname: string, init: RequestInit = {}) {
-  const res = await fetch(`${mediaApiUrl()}${pathname}`, {
+  const url = `${mediaApiUrl()}${pathname}`;
+  const res = await fetch(url, {
     ...init,
     headers: mediaHeaders(init.headers),
     cache: "no-store",
@@ -58,11 +59,14 @@ export async function mediaFetch(pathname: string, init: RequestInit = {}) {
     try {
       data = JSON.parse(text) as Record<string, unknown>;
     } catch {
-      throw new Error(`Media server returned invalid JSON (${res.status})`);
+      const snippet = text.replace(/\s+/g, " ").slice(0, 120);
+      throw new Error(
+        `Media server at ${url} returned non-JSON (${res.status}): ${snippet || "(empty)"}`,
+      );
     }
   }
   if (!res.ok) {
-    throw new Error(String(data.error || `Media server error (${res.status})`));
+    throw new Error(String(data.error || `Media server error (${res.status}) at ${pathname}`));
   }
   return data;
 }
@@ -88,17 +92,24 @@ export async function remoteRemoveSong(id: string): Promise<boolean> {
 
 export async function remoteReadJson<T>(key: string, fallback: T): Promise<T> {
   try {
-    const res = await fetch(`${mediaApiUrl()}/meta/${key}`, {
-      headers: mediaHeaders(),
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${mediaApiUrl()}/kv?key=${encodeURIComponent(key)}`,
+      {
+        headers: mediaHeaders(),
+        cache: "no-store",
+      },
+    );
     if (res.status === 404) return fallback;
     const text = await res.text();
     if (!res.ok) {
-      throw new Error(`Media meta read failed (${res.status})`);
+      throw new Error(`Media kv read failed (${res.status})`);
     }
     if (!text.trim()) return fallback;
-    return JSON.parse(text) as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return fallback;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("404") || message.toLowerCase().includes("not found")) {
@@ -109,13 +120,13 @@ export async function remoteReadJson<T>(key: string, fallback: T): Promise<T> {
 }
 
 export async function remoteWriteJson(key: string, value: unknown): Promise<void> {
-  await mediaFetch(`/meta/${key}`, {
+  await mediaFetch("/kv", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(value ?? null),
+    body: JSON.stringify({ key, value }),
   });
 }
 
 export async function remoteDeleteJson(key: string): Promise<void> {
-  await mediaFetch(`/meta/${key}`, { method: "DELETE" });
+  await mediaFetch(`/kv?key=${encodeURIComponent(key)}`, { method: "DELETE" });
 }

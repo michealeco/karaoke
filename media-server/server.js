@@ -214,24 +214,32 @@ app.delete("/songs/:id", requireServerAuth, async (req, res) => {
   }
 });
 
-// JSON meta store (rooms / queue state) — Ubuntu is the database
-app.get("/meta/*key", requireServerAuth, async (req, res) => {
+// JSON store for rooms/queue — key via querystring (reliable with Express + ngrok)
+app.get("/kv", requireServerAuth, async (req, res) => {
   try {
-    const key = String(req.params.key || "").replace(/^\/+/, "");
-    const filePath = metaFilePath(key);
-    const raw = await readFile(filePath, "utf8");
+    const key = String(req.query.key || "");
+    if (!key) {
+      res.status(400).json({ error: "key is required" });
+      return;
+    }
+    const raw = await readFile(metaFilePath(key), "utf8");
     res.type("json").send(raw);
   } catch {
     res.status(404).json({ error: "Not found" });
   }
 });
 
-app.put("/meta/*key", requireServerAuth, async (req, res) => {
+app.put("/kv", requireServerAuth, async (req, res) => {
   try {
-    const key = String(req.params.key || "").replace(/^\/+/, "");
+    const key = String(req.body?.key || req.query.key || "");
+    if (!key) {
+      res.status(400).json({ error: "key is required" });
+      return;
+    }
+    const value = req.body && "value" in req.body ? req.body.value : req.body;
     const filePath = metaFilePath(key);
     await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, JSON.stringify(req.body ?? null, null, 2), "utf8");
+    await writeFile(filePath, JSON.stringify(value ?? null, null, 2), "utf8");
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({
@@ -240,9 +248,13 @@ app.put("/meta/*key", requireServerAuth, async (req, res) => {
   }
 });
 
-app.delete("/meta/*key", requireServerAuth, async (req, res) => {
+app.delete("/kv", requireServerAuth, async (req, res) => {
   try {
-    const key = String(req.params.key || "").replace(/^\/+/, "");
+    const key = String(req.query.key || "");
+    if (!key) {
+      res.status(400).json({ error: "key is required" });
+      return;
+    }
     await unlink(metaFilePath(key)).catch(() => undefined);
     res.json({ ok: true });
   } catch (error) {

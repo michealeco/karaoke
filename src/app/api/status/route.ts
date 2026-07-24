@@ -20,6 +20,22 @@ export async function GET() {
       });
       mediaReachable = res.ok;
       if (!res.ok) mediaError = `Media server HTTP ${res.status}`;
+      else {
+        const kv = await fetch(`${mediaUrl}/kv?key=__ping__`, {
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+            "x-media-secret": process.env.MEDIA_API_SECRET || "",
+          },
+          cache: "no-store",
+        });
+        // 404 means route works but key missing; 401 means bad secret
+        if (kv.status === 401) {
+          mediaReachable = false;
+          mediaError = "MEDIA_API_SECRET does not match the Ubuntu media server";
+        } else if (kv.status !== 404 && kv.status !== 200) {
+          mediaError = `KV endpoint HTTP ${kv.status} — pull latest media-server on Ubuntu`;
+        }
+      }
     } catch (error) {
       mediaReachable = false;
       mediaError = error instanceof Error ? error.message : String(error);
