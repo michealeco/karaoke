@@ -1,38 +1,62 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  getStoredDevice,
+  setStoredDevice,
+  type LayoutMode,
+} from "@/lib/useLayoutMode";
 import { setDisplayName, setHostToken } from "@/lib/client";
 
 export function HomeActions() {
   const router = useRouter();
+  const [device, setDevice] = useState<LayoutMode>("phone");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function createRoom(tv: boolean) {
+  useEffect(() => {
+    const stored = getStoredDevice();
+    if (stored) {
+      setDevice(stored);
+      return;
+    }
+    const isTv = window.matchMedia(
+      "(min-width: 1024px) and (min-height: 640px) and (orientation: landscape)",
+    ).matches;
+    setDevice(isTv ? "tv" : "phone");
+  }, []);
+
+  function pickDevice(next: LayoutMode) {
+    setDevice(next);
+    setStoredDevice(next);
+    document.documentElement.dataset.device = next;
+  }
+
+  async function createRoom() {
     setBusy(true);
     setError(null);
     try {
+      setStoredDevice(device);
       if (name.trim()) setDisplayName(name);
       const res = await fetch("/api/rooms", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not create room");
       setHostToken(data.room.code, data.hostToken);
-      router.push(
-        tv ? `/room/${data.room.code}?tv=1` : `/room/${data.room.code}`,
-      );
+      router.push(`/room/${data.room.code}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create room");
       setBusy(false);
     }
   }
 
-  async function joinRoom(e: React.FormEvent, tv = false) {
+  async function joinRoom(e: React.FormEvent) {
     e.preventDefault();
     const cleaned = code.trim().toUpperCase();
     if (!cleaned) return;
+    setStoredDevice(device);
     if (name.trim()) setDisplayName(name);
     setBusy(true);
     const res = await fetch(`/api/rooms/${cleaned}`);
@@ -41,57 +65,62 @@ export function HomeActions() {
       setBusy(false);
       return;
     }
-    router.push(tv ? `/room/${cleaned}?tv=1` : `/room/${cleaned}`);
+    router.push(`/room/${cleaned}`);
   }
 
   return (
     <div className="home-actions">
+      <div className="device-picker" role="group" aria-label="This device">
+        <button
+          type="button"
+          className={`device-card ${device === "phone" ? "active" : ""}`}
+          onClick={() => pickDevice("phone")}
+        >
+          <strong>Phone</strong>
+          <span>Queue songs & search the library</span>
+        </button>
+        <button
+          type="button"
+          className={`device-card ${device === "tv" ? "active" : ""}`}
+          onClick={() => pickDevice("tv")}
+        >
+          <strong>Smart TV</strong>
+          <span>Stage display for the party</span>
+        </button>
+      </div>
+
       <label className="name-field home-name">
         <span>Your name</span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Optional"
+          enterKeyHint="done"
         />
       </label>
 
-      <div className="cta-row">
-        <button
-          type="button"
-          className="btn btn-primary btn-large"
-          onClick={() => createRoom(false)}
-          disabled={busy}
-        >
-          {busy ? "Opening…" : "Start a room"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-large"
-          onClick={() => createRoom(true)}
-          disabled={busy}
-        >
-          Start on TV
-        </button>
-      </div>
+      <button
+        type="button"
+        className="btn btn-primary btn-xl"
+        onClick={createRoom}
+        disabled={busy}
+      >
+        {busy ? "Opening…" : "Start a room"}
+      </button>
 
-      <form className="join-form" onSubmit={(e) => joinRoom(e, false)}>
+      <form className="join-form" onSubmit={joinRoom}>
         <input
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="Room code"
           maxLength={6}
           aria-label="Room code"
+          inputMode="text"
+          autoCapitalize="characters"
+          autoCorrect="off"
         />
-        <button type="submit" className="btn btn-ghost btn-large" disabled={busy}>
+        <button type="submit" className="btn btn-ghost btn-xl" disabled={busy}>
           Join
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-large"
-          disabled={busy || !code.trim()}
-          onClick={(e) => joinRoom(e, true)}
-        >
-          Open on TV
         </button>
       </form>
 

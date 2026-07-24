@@ -3,12 +3,11 @@ import { HomeActions } from "@/components/HomeActions";
 export default function HomePage() {
   return (
     <main className="hero">
-      <div>
+      <div className="hero-inner">
         <p className="hero-brand">Chorus</p>
-        <h2>Party karaoke with a shared queue.</h2>
+        <h2>Karaoke for the TV and your phone.</h2>
         <p className="hero-copy">
-          Put the TV display on the big screen, then let everyone queue songs from
-          their phones.
+          Smart TV shows the stage. Phones search, queue, and pass the mic.
         </p>
         <HomeActions />
       </div>

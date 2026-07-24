@@ -8,8 +8,8 @@ type Props = {
 export default async function RoomPage({ params }: Props) {
   const { code } = await params;
   return (
-    <main>
-      <Suspense fallback={<p className="muted">Loading room…</p>}>
+    <main className="room-main">
+      <Suspense fallback={<p className="muted phone-pad">Loading room…</p>}>
         <RoomClient code={code.toUpperCase()} />
       </Suspense>
     </main>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 import { SiteChrome } from "@/components/SiteChrome";
 import "./globals.css";
@@ -17,7 +17,14 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Chorus — Party Karaoke",
-  description: "Upload karaoke MP4s, open a room, and pass the queue around.",
+  description:
+    "Karaoke for smart TV and phone — stage on the big screen, queue from your pocket.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

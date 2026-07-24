@@ -1,27 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useLayoutMode } from "@/lib/useLayoutMode";
 
-function ChromeInner({ children }: { children: React.ReactNode }) {
+export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const tvMode =
-    pathname.startsWith("/room/") && searchParams.get("tv") === "1";
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("tv-mode", tvMode);
-    document.body.classList.toggle("tv-mode", tvMode);
-    return () => {
-      document.documentElement.classList.remove("tv-mode");
-      document.body.classList.remove("tv-mode");
-    };
-  }, [tvMode]);
+  const mode = useLayoutMode();
+  const inRoom = pathname.startsWith("/room/");
+  const tvRoom = inRoom && mode === "tv";
 
   return (
-    <div className={`site-shell ${tvMode ? "site-shell-tv" : ""}`}>
-      {!tvMode ? (
+    <div className={`site-shell ${tvRoom ? "site-shell-tv" : ""}`}>
+      {!tvRoom ? (
         <nav className="site-nav">
           <Link href="/" className="brand">
             Chorus
@@ -34,13 +25,5 @@ function ChromeInner({ children }: { children: React.ReactNode }) {
       ) : null}
       {children}
     </div>
-  );
-}
-
-export function SiteChrome({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={<div className="site-shell">{children}</div>}>
-      <ChromeInner>{children}</ChromeInner>
-    </Suspense>
   );
 }

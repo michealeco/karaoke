@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RoomPublic, Song } from "@/lib/types";
 import {
@@ -10,6 +8,7 @@ import {
   hostHeaders,
   setDisplayName,
 } from "@/lib/client";
+import { useLayoutMode } from "@/lib/useLayoutMode";
 import { SongLibrary } from "./SongLibrary";
 
 type Props = {
@@ -17,9 +16,8 @@ type Props = {
 };
 
 export function RoomClient({ code }: Props) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const tvMode = searchParams.get("tv") === "1";
+  const mode = useLayoutMode();
+  const isTv = mode === "tv";
 
   const [room, setRoom] = useState<RoomPublic | null>(null);
   const [name, setName] = useState("Guest");
@@ -97,14 +95,14 @@ export function RoomClient({ code }: Props) {
   }, [room]);
 
   const bumpHud = useCallback(() => {
-    if (!tvMode) return;
+    if (!isTv) return;
     setHudVisible(true);
     if (hideHudTimer.current) clearTimeout(hideHudTimer.current);
     hideHudTimer.current = setTimeout(() => setHudVisible(false), 5000);
-  }, [tvMode]);
+  }, [isTv]);
 
   useEffect(() => {
-    if (!tvMode) return;
+    if (!isTv) return;
     bumpHud();
     const onMove = () => bumpHud();
     window.addEventListener("mousemove", onMove);
@@ -114,7 +112,7 @@ export function RoomClient({ code }: Props) {
       window.removeEventListener("keydown", onMove);
       if (hideHudTimer.current) clearTimeout(hideHudTimer.current);
     };
-  }, [tvMode, bumpHud]);
+  }, [isTv, bumpHud]);
 
   const control = useCallback(
     async (
@@ -148,7 +146,7 @@ export function RoomClient({ code }: Props) {
   const isHost = room?.isHost || Boolean(getHostToken(code));
 
   useEffect(() => {
-    if (!tvMode || !isHost) return;
+    if (!isTv || !isHost) return;
 
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement | null)?.tagName;
@@ -163,14 +161,12 @@ export function RoomClient({ code }: Props) {
       } else if (e.key === "ArrowLeft" || e.key === "p" || e.key === "P") {
         e.preventDefault();
         void control("prev");
-      } else if (e.key === "Escape") {
-        router.push(`/room/${code}`);
       }
     }
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [tvMode, isHost, code, router, control]);
+  }, [isTv, isHost, control]);
 
   async function addSong(song: Song) {
     setBusy(true);
@@ -209,14 +205,10 @@ export function RoomClient({ code }: Props) {
     setDisplayName(value);
   }
 
-  function setTvMode(enabled: boolean) {
-    router.push(enabled ? `/room/${code}?tv=1` : `/room/${code}`);
-  }
-
   const queue = room?.queueSongs ?? [];
-  const upNext = queue.filter((_, i) => i > (room?.currentIndex ?? -1)).slice(0, 5);
+  const upNext = queue.filter((_, i) => i > (room?.currentIndex ?? -1)).slice(0, 6);
 
-  if (tvMode) {
+  if (isTv) {
     return (
       <div className={`tv-shell ${hudVisible ? "hud-on" : "hud-off"}`}>
         <div className="tv-safe">
@@ -227,12 +219,7 @@ export function RoomClient({ code }: Props) {
                 Join on your phone · room <strong>{code}</strong>
               </p>
             </div>
-            <div className="tv-top-actions">
-              <span className="role-pill">{isHost ? "TV host" : "TV display"}</span>
-              <Link href={`/room/${code}`} className="btn btn-ghost btn-tv">
-                Exit TV
-              </Link>
-            </div>
+            <div className="role-pill">{isHost ? "TV host" : "TV display"}</div>
           </header>
 
           {error ? <p className="form-error room-error">{error}</p> : null}
@@ -254,7 +241,7 @@ export function RoomClient({ code }: Props) {
                   <div className="stage-empty tv-empty">
                     <p>Waiting for the first song…</p>
                     <p className="tv-empty-hint">
-                      Guests can add tracks from their phones using code{" "}
+                      Open Chorus on your phone and join with{" "}
                       <strong>{code}</strong>
                     </p>
                   </div>
@@ -304,7 +291,7 @@ export function RoomClient({ code }: Props) {
 
               {isHost ? (
                 <p className="tv-remote-hint">
-                  Remote: Enter / Space play · ← prev · → skip · Esc exit
+                  Remote: Enter / Space play · ← prev · → skip
                 </p>
               ) : null}
             </section>
@@ -327,10 +314,7 @@ export function RoomClient({ code }: Props) {
                   <li className="tv-queue-empty">No songs waiting</li>
                 ) : null}
               </ul>
-
-              <div className="tv-queue-count">
-                {queue.length} in queue
-              </div>
+              <div className="tv-queue-count">{queue.length} in queue</div>
             </aside>
           </div>
         </div>
@@ -338,175 +322,163 @@ export function RoomClient({ code }: Props) {
     );
   }
 
+  // Phone / controller layout
   return (
-    <div className="room-shell">
-      <header className="room-top">
+    <div className="phone-room">
+      <header className="phone-top">
         <div>
           <p className="eyebrow">Room</p>
-          <h1 className="room-code">{code}</h1>
+          <h1 className="phone-code">{code}</h1>
         </div>
-        <label className="name-field">
-          <span>Your name</span>
-          <input
-            value={name}
-            onChange={(e) => saveName(e.target.value)}
-            placeholder="Guest"
-          />
-        </label>
-        <div className="room-top-right">
-          <div className="role-pill">{isHost ? "Host controls" : "Guest"}</div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setTvMode(true)}
-          >
-            TV display
-          </button>
-        </div>
+        <div className="role-pill">{isHost ? "Host" : "Guest"}</div>
       </header>
+
+      <label className="name-field phone-name">
+        <span>Your name</span>
+        <input
+          value={name}
+          onChange={(e) => saveName(e.target.value)}
+          placeholder="Guest"
+          enterKeyHint="done"
+        />
+      </label>
 
       {error ? <p className="form-error room-error">{error}</p> : null}
 
-      <div className="room-grid">
-        <section className="stage panel">
-          <div className="stage-frame">
-            {room?.nowPlaying ? (
-              <video
-                ref={videoRef}
-                className="stage-video"
-                playsInline
-                controls={isHost}
-                onPlay={() => {
-                  if (!isHost || applyingRemote.current) return;
-                  void control(
-                    "play",
-                    Math.floor((videoRef.current?.currentTime || 0) * 1000),
-                  );
-                }}
-                onPause={() => {
-                  if (!isHost || applyingRemote.current) return;
-                  void control(
-                    "pause",
-                    Math.floor((videoRef.current?.currentTime || 0) * 1000),
-                  );
-                }}
-                onSeeked={() => {
-                  if (!isHost || applyingRemote.current) return;
-                  void control(
-                    "seek",
-                    Math.floor((videoRef.current?.currentTime || 0) * 1000),
-                  );
-                }}
-                onEnded={() => {
-                  if (isHost) void control("skip");
-                }}
-              />
-            ) : (
-              <div className="stage-empty">
-                <p>Waiting for the first song…</p>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => setTab("library")}
-                >
-                  Pick a track
-                </button>
-              </div>
-            )}
-          </div>
+      <section className="phone-now panel">
+        <p className="eyebrow">Now playing</p>
+        <h2>{room?.nowPlaying?.title ?? "Nothing queued"}</h2>
+        <p>{room?.nowPlaying?.artist ?? "Add a song from the library"}</p>
 
-          <div className="now-playing">
-            <div>
-              <p className="eyebrow">Now playing</p>
-              <h2>{room?.nowPlaying?.title ?? "Nothing queued"}</h2>
-              <p>{room?.nowPlaying?.artist ?? "Add a song from the library"}</p>
-            </div>
-            {isHost ? (
-              <div className="transport">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={busy}
-                  onClick={() => control("prev")}
-                >
-                  Prev
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={busy || !room?.nowPlaying}
-                  onClick={() =>
-                    control(room?.status === "playing" ? "pause" : "play")
-                  }
-                >
-                  {room?.status === "playing" ? "Pause" : "Play"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={busy}
-                  onClick={() => control("skip")}
-                >
-                  Skip
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        <aside className="side panel">
-          <div className="tabs">
-            <button
-              type="button"
-              className={tab === "queue" ? "active" : ""}
-              onClick={() => setTab("queue")}
-            >
-              Queue ({room?.queue?.length ?? 0})
-            </button>
-            <button
-              type="button"
-              className={tab === "library" ? "active" : ""}
-              onClick={() => setTab("library")}
-            >
-              Library
-            </button>
-          </div>
-
-          {tab === "queue" ? (
-            <ul className="queue-list">
-              {(room?.queueSongs ?? []).map((item, index) => {
-                const active = index === room?.currentIndex;
-                return (
-                  <li
-                    key={item.id}
-                    className={`queue-item ${active ? "active" : ""}`}
-                  >
-                    <div>
-                      <strong>{item.song?.title ?? "Missing song"}</strong>
-                      <span>
-                        {item.song?.artist ?? "—"} · added by {item.addedBy}
-                      </span>
-                    </div>
-                    {isHost ? (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-small"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        Remove
-                      </button>
-                    ) : null}
-                  </li>
+        {isHost && room?.nowPlaying ? (
+          <div className="phone-video-wrap">
+            <video
+              ref={videoRef}
+              className="stage-video"
+              playsInline
+              controls
+              onPlay={() => {
+                if (applyingRemote.current) return;
+                void control(
+                  "play",
+                  Math.floor((videoRef.current?.currentTime || 0) * 1000),
                 );
-              })}
-              {!room?.queueSongs?.length ? (
-                <li className="muted">Queue is empty. Add something catchy.</li>
-              ) : null}
-            </ul>
-          ) : (
-            <SongLibrary compact selectable onSelect={addSong} />
-          )}
-        </aside>
+              }}
+              onPause={() => {
+                if (applyingRemote.current) return;
+                void control(
+                  "pause",
+                  Math.floor((videoRef.current?.currentTime || 0) * 1000),
+                );
+              }}
+              onSeeked={() => {
+                if (applyingRemote.current) return;
+                void control(
+                  "seek",
+                  Math.floor((videoRef.current?.currentTime || 0) * 1000),
+                );
+              }}
+              onEnded={() => {
+                void control("skip");
+              }}
+            />
+          </div>
+        ) : null}
+
+        {isHost ? (
+          <div className="phone-transport">
+            <button
+              type="button"
+              className="btn btn-ghost btn-touch"
+              disabled={busy}
+              onClick={() => control("prev")}
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-touch"
+              disabled={busy || !room?.nowPlaying}
+              onClick={() =>
+                control(room?.status === "playing" ? "pause" : "play")
+              }
+            >
+              {room?.status === "playing" ? "Pause" : "Play"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-touch"
+              disabled={busy}
+              onClick={() => control("skip")}
+            >
+              Skip
+            </button>
+          </div>
+        ) : (
+          <p className="phone-hint">
+            Video plays on the TV. Use the tabs below to queue songs.
+          </p>
+        )}
+      </section>
+
+      <div className="phone-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "queue"}
+          className={tab === "queue" ? "active" : ""}
+          onClick={() => setTab("queue")}
+        >
+          Queue ({queue.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "library"}
+          className={tab === "library" ? "active" : ""}
+          onClick={() => setTab("library")}
+        >
+          Add song
+        </button>
+      </div>
+
+      <div className="phone-panel">
+        {tab === "queue" ? (
+          <ul className="phone-list">
+            {queue.map((item, index) => {
+              const active = index === room?.currentIndex;
+              return (
+                <li
+                  key={item.id}
+                  className={`phone-list-item ${active ? "active" : ""}`}
+                >
+                  <div>
+                    <strong>{item.song?.title ?? "Missing song"}</strong>
+                    <span>
+                      {item.song?.artist ?? "—"} · {item.addedBy}
+                    </span>
+                  </div>
+                  {isHost ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-touch-sm"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </li>
+              );
+            })}
+            {!queue.length ? (
+              <li className="muted phone-empty">
+                Queue is empty. Tap Add song.
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <SongLibrary compact selectable onSelect={addSong} />
+        )}
       </div>
     </div>
   );
