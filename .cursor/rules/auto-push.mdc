@@ -1,0 +1,14 @@
+---
+description: Always commit and push completed changes to GitHub
+alwaysApply: true
+---
+
+# Auto push after changes
+
+After finishing a set of code changes in this project, always:
+
+1. Commit with a concise message (use local `git -c user.name` / `user.email` if identity is unset — never change global git config).
+2. Push to `origin` on the current branch (`main` unless told otherwise).
+3. Confirm the push briefly to the user.
+
+Do not wait for the user to ask "push" each time. Skip only if there is nothing to commit, or if the user explicitly says not to push.
