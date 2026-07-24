@@ -42,6 +42,7 @@ Put Nginx/Caddy in front if you want HTTPS and a domain.
 
 ### Important Vercel notes
 
+- **Required:** create a **Blob** store on the Vercel project. Without `BLOB_READ_WRITE_TOKEN`, rooms/library APIs cannot save data (Vercel’s filesystem is read-only) and the UI will show a clear storage error.
 - Karaoke MP4s are usually larger than the serverless request body limit, so production uploads go **directly to Vercel Blob**.
 - Room/queue state is also stored in Blob JSON when the token is present.
 - For heavier multi-room traffic later, swap room state to Redis/Postgres; the current store is fine for parties and small groups.

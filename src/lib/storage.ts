@@ -9,20 +9,50 @@ function useBlob() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+export function isBlobEnabled() {
+  return useBlob();
+}
+
+function requireStorage() {
+  // Vercel serverless has a read-only filesystem — Blob is required there.
+  if (process.env.VERCEL && !useBlob()) {
+    throw new Error(
+      "Storage is not configured. In the Vercel project, open Storage → create a Blob store, then redeploy so BLOB_READ_WRITE_TOKEN is set.",
+    );
+  }
+}
+
 async function ensureLocalDirs() {
   await mkdir(DATA_DIR, { recursive: true });
   await mkdir(UPLOAD_DIR, { recursive: true });
   await mkdir(path.join(DATA_DIR, "rooms"), { recursive: true });
 }
 
+async function parseJsonText<T>(raw: string, fallback: T): Promise<T> {
+  const trimmed = raw.trim();
+  if (!trimmed) return fallback;
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function readJson<T>(key: string, fallback: T): Promise<T> {
+  requireStorage();
+
   if (useBlob()) {
-    const { blobs } = await list({ prefix: `meta/${key}` });
-    const match = blobs.find((b) => b.pathname === `meta/${key}`);
-    if (!match) return fallback;
-    const res = await fetch(match.url, { cache: "no-store" });
-    if (!res.ok) return fallback;
-    return (await res.json()) as T;
+    try {
+      const { blobs } = await list({ prefix: `meta/${key}` });
+      const match = blobs.find((b) => b.pathname === `meta/${key}`);
+      if (!match) return fallback;
+      const res = await fetch(match.url, { cache: "no-store" });
+      if (!res.ok) return fallback;
+      return parseJsonText(await res.text(), fallback);
+    } catch (error) {
+      console.error("readJson blob failed", key, error);
+      return fallback;
+    }
   }
 
   await ensureLocalDirs();
@@ -30,13 +60,14 @@ export async function readJson<T>(key: string, fallback: T): Promise<T> {
   try {
     await access(filePath);
     const raw = await readFile(filePath, "utf8");
-    return JSON.parse(raw) as T;
+    return parseJsonText(raw, fallback);
   } catch {
     return fallback;
   }
 }
 
 export async function writeJson(key: string, value: unknown): Promise<void> {
+  requireStorage();
   const body = JSON.stringify(value, null, 2);
 
   if (useBlob()) {
@@ -56,6 +87,8 @@ export async function writeJson(key: string, value: unknown): Promise<void> {
 }
 
 export async function deleteJson(key: string): Promise<void> {
+  requireStorage();
+
   if (useBlob()) {
     const { blobs } = await list({ prefix: `meta/${key}` });
     const match = blobs.find((b) => b.pathname === `meta/${key}`);
@@ -75,6 +108,12 @@ export async function saveLocalUpload(
   filename: string,
   bytes: Buffer,
 ): Promise<{ url: string; filename: string }> {
+  if (process.env.VERCEL) {
+    throw new Error(
+      "Local uploads are not available on Vercel. Use the Blob client uploader.",
+    );
+  }
+
   await ensureLocalDirs();
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
   const unique = `${Date.now()}-${safe}`;
@@ -90,8 +129,4 @@ export async function deleteLocalUpload(filename: string): Promise<void> {
   } catch {
     // ignore
   }
-}
-
-export function isBlobEnabled() {
-  return useBlob();
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Song } from "@/lib/types";
 import { formatBytes } from "@/lib/client";
+import { readResponseJson } from "@/lib/http";
 import { UploadForm } from "./UploadForm";
 
 type Props = {
@@ -22,9 +23,12 @@ export function SongLibrary({ selectable, onSelect, compact }: Props) {
     setError(null);
     try {
       const res = await fetch(`/api/songs?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
+      const data = await readResponseJson<{
+        songs?: Song[];
+        error?: string;
+      }>(res);
       if (!res.ok) throw new Error(data.error || "Failed to load songs");
-      setSongs(data.songs);
+      setSongs(data.songs ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {

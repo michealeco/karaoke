@@ -8,6 +8,7 @@ import {
   hostHeaders,
   setDisplayName,
 } from "@/lib/client";
+import { readResponseJson } from "@/lib/http";
 import { useLayoutMode } from "@/lib/useLayoutMode";
 import { SongLibrary } from "./SongLibrary";
 
@@ -36,17 +37,24 @@ export function RoomClient({ code }: Props) {
   busyRef.current = busy;
 
   const refresh = useCallback(async () => {
-    const res = await fetch(`/api/rooms/${code}`, {
-      headers: hostHeaders(code),
-      cache: "no-store",
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || "Room not found");
-      return;
+    try {
+      const res = await fetch(`/api/rooms/${code}`, {
+        headers: hostHeaders(code),
+        cache: "no-store",
+      });
+      const data = await readResponseJson<{
+        room?: RoomPublic;
+        error?: string;
+      }>(res);
+      if (!res.ok) {
+        setError(data.error || "Room not found");
+        return;
+      }
+      if (data.room) setRoom(data.room);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load room");
     }
-    setRoom(data.room);
-    setError(null);
   }, [code]);
 
   useEffect(() => {
@@ -131,9 +139,12 @@ export function RoomClient({ code }: Props) {
           },
           body: JSON.stringify({ action, positionMs }),
         });
-        const data = await res.json();
+        const data = await readResponseJson<{
+          room?: RoomPublic;
+          error?: string;
+        }>(res);
         if (!res.ok) throw new Error(data.error || "Action failed");
-        setRoom(data.room);
+        if (data.room) setRoom(data.room);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Action failed");
       } finally {
@@ -179,9 +190,12 @@ export function RoomClient({ code }: Props) {
         },
         body: JSON.stringify({ songId: song.id, addedBy: name }),
       });
-      const data = await res.json();
+      const data = await readResponseJson<{
+        room?: RoomPublic;
+        error?: string;
+      }>(res);
       if (!res.ok) throw new Error(data.error || "Could not add song");
-      setRoom(data.room);
+      if (data.room) setRoom(data.room);
       setTab("queue");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add song");
@@ -191,13 +205,20 @@ export function RoomClient({ code }: Props) {
   }
 
   async function removeItem(itemId: string) {
-    const res = await fetch(`/api/rooms/${code}/queue?itemId=${itemId}`, {
-      method: "DELETE",
-      headers: hostHeaders(code),
-    });
-    const data = await res.json();
-    if (res.ok) setRoom(data.room);
-    else setError(data.error || "Host only");
+    try {
+      const res = await fetch(`/api/rooms/${code}/queue?itemId=${itemId}`, {
+        method: "DELETE",
+        headers: hostHeaders(code),
+      });
+      const data = await readResponseJson<{
+        room?: RoomPublic;
+        error?: string;
+      }>(res);
+      if (res.ok && data.room) setRoom(data.room);
+      else setError(data.error || "Host only");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove item");
+    }
   }
 
   function saveName(value: string) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import type { Song } from "@/lib/types";
 import { formatBytes } from "@/lib/client";
+import { readResponseJson } from "@/lib/http";
 
 type Props = {
   onUploaded?: (song: Song) => void;
@@ -20,7 +21,7 @@ export function UploadForm({ onUploaded }: Props) {
 
   useEffect(() => {
     fetch("/api/songs")
-      .then((r) => r.json())
+      .then((r) => readResponseJson<{ blobEnabled?: boolean }>(r))
       .then((data) => setBlobEnabled(Boolean(data.blobEnabled)))
       .catch(() => setBlobEnabled(false));
   }, []);
@@ -61,8 +62,9 @@ export function UploadForm({ onUploaded }: Props) {
             size: file.size,
           }),
         });
-        const data = await res.json();
+        const data = await readResponseJson<{ song?: Song; error?: string }>(res);
         if (!res.ok) throw new Error(data.error || "Failed to save song");
+        if (!data.song) throw new Error("Failed to save song");
         song = data.song;
       } else {
         const form = new FormData();
@@ -70,8 +72,9 @@ export function UploadForm({ onUploaded }: Props) {
         form.set("artist", artist.trim());
         form.set("file", file);
         const res = await fetch("/api/songs", { method: "POST", body: form });
-        const data = await res.json();
+        const data = await readResponseJson<{ song?: Song; error?: string }>(res);
         if (!res.ok) throw new Error(data.error || "Upload failed");
+        if (!data.song) throw new Error("Upload failed");
         song = data.song;
       }
 

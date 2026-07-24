@@ -10,30 +10,39 @@ function tokenFrom(request: Request) {
   return request.headers.get("x-host-token");
 }
 
+function fail(error: unknown, status = 500) {
+  const message = error instanceof Error ? error.message : String(error);
+  return NextResponse.json({ error: message }, { status });
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ code: string }> },
 ) {
-  const { code } = await context.params;
-  const room = await getRoom(code);
-  if (!room) {
-    return NextResponse.json({ error: "Room not found" }, { status: 404 });
+  try {
+    const { code } = await context.params;
+    const room = await getRoom(code);
+    if (!room) {
+      return NextResponse.json({ error: "Room not found" }, { status: 404 });
+    }
+    const publicRoom = await enrichRoom(room, tokenFrom(request));
+    return NextResponse.json({ room: publicRoom });
+  } catch (error) {
+    return fail(error);
   }
-  const publicRoom = await enrichRoom(room, tokenFrom(request));
-  return NextResponse.json({ room: publicRoom });
 }
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ code: string }> },
 ) {
-  const { code } = await context.params;
-  const body = (await request.json()) as {
-    action?: "play" | "pause" | "skip" | "prev" | "seek";
-    positionMs?: number;
-  };
-
   try {
+    const { code } = await context.params;
+    const body = (await request.json()) as {
+      action?: "play" | "pause" | "skip" | "prev" | "seek";
+      positionMs?: number;
+    };
+
     let room = null;
     const token = tokenFrom(request);
 
@@ -73,9 +82,8 @@ export async function PATCH(
 
     return NextResponse.json({ room: await enrichRoom(room, token) });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) },
-      { status: 403 },
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message === "Host only" ? 403 : 500;
+    return fail(error, status);
   }
 }

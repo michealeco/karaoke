@@ -9,6 +9,7 @@ import {
   type LayoutMode,
 } from "@/lib/useLayoutMode";
 import { setDisplayName, setHostToken } from "@/lib/client";
+import { readResponseJson } from "@/lib/http";
 
 export function HomeActions() {
   const router = useRouter();
@@ -35,7 +36,11 @@ export function HomeActions() {
       setStoredDevice(device);
       if (name.trim()) setDisplayName(name);
       const res = await fetch("/api/rooms", { method: "POST" });
-      const data = await res.json();
+      const data = await readResponseJson<{
+        room: { code: string };
+        hostToken: string;
+        error?: string;
+      }>(res);
       if (!res.ok) throw new Error(data.error || "Could not create room");
       setHostToken(data.room.code, data.hostToken);
       router.push(`/room/${data.room.code}`);
