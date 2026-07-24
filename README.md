@@ -1,64 +1,56 @@
 # Chorus — Party Karaoke
 
-Party karaoke web app: upload MP4s, share a room code, search the library, and run a live queue.
+Party karaoke web app: **songs live on your Ubuntu server**, the web UI can run on **Vercel**.
 
-Built with **Next.js** so you can deploy to **Vercel**, or run it on your Ubuntu server with local file storage.
+## Architecture
 
-## Features
+- **Ubuntu `media-server/`** — stores MP4s, library JSON, streams video (with HTTP range)
+- **Next.js app (Vercel or Ubuntu)** — rooms, queue, phone/TV UI
+- Uploads go **directly from the browser → Ubuntu** (not through Vercel Blob)
 
-- Create / join party rooms with a short code
-- Shared song library with search
-- MP4 uploads (karaoke videos with burned-in lyrics)
-- Live queue everyone can add to
-- Host controls: play, pause, skip, remove queue items
-
-## Quick start (local or Ubuntu)
+## 1) Start the Ubuntu media server
 
 ```bash
+cd media-server
+cp .env.example .env
+# set MEDIA_API_SECRET, PUBLIC_BASE_URL, CORS_ORIGINS
+npm install
+npm start
+```
+
+Put Nginx in front with HTTPS. See `media-server/README.md`.
+
+## 2) Run the web app locally
+
+```bash
+cp .env.example .env.local
+# set MEDIA_API_URL + MEDIA_API_SECRET to match Ubuntu
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+If `MEDIA_API_URL` is unset, local mode saves MP4s under `public/uploads/` (dev only).
 
-Without Vercel Blob configured, uploads are saved to `public/uploads/` and room/library data to `data/`.
+## 3) Deploy the web app to Vercel
 
-### Production on Ubuntu
-
-```bash
-npm run build
-npm start
-```
-
-Put Nginx/Caddy in front if you want HTTPS and a domain.
-
-## Deploy to Vercel
-
-1. Push this repo to GitHub.
-2. Import the project in [Vercel](https://vercel.com/new).
-3. Create a **Blob** store for the project (Storage → Blob).
-4. Redeploy so `BLOB_READ_WRITE_TOKEN` is available.
-5. Upload MP4s from the Library page (client upload supports large files).
-
-### Important Vercel notes
-
-- **Required:** create a **Blob** store on the Vercel project. Without `BLOB_READ_WRITE_TOKEN`, rooms/library APIs cannot save data (Vercel’s filesystem is read-only) and the UI will show a clear storage error.
-- Karaoke MP4s are usually larger than the serverless request body limit, so production uploads go **directly to Vercel Blob**.
-- Room/queue state is also stored in Blob JSON when the token is present.
-- For heavier multi-room traffic later, swap room state to Redis/Postgres; the current store is fine for parties and small groups.
+1. Push this repo and import it in Vercel.
+2. Set env vars:
+   - `MEDIA_API_URL` = `https://media.example.com`
+   - `MEDIA_API_SECRET` = same secret as Ubuntu
+3. Create a **Blob** store for **room/queue state only** (not songs).
+4. On Ubuntu media-server, set `CORS_ORIGINS` to your Vercel URL.
+5. Redeploy.
 
 ## How to use
 
-1. Open **Library** on a phone/laptop and upload karaoke MP4s.
-2. Start or join a room. Layout is responsive:
-   - **Narrow / portrait** → phone controller (queue & search)
+1. Open **Library** and upload karaoke MP4s (they land on Ubuntu).
+2. Start/join a room. Layout is responsive:
+   - **Narrow / portrait** → phone controller
    - **Wide landscape** → smart TV stage
-3. Phones add songs; the TV shows video + up next.
-4. Host transport works on both; TV remotes use Enter/Space and arrow keys.
+3. Phones queue songs; the TV plays video from your Ubuntu media URL.
 
 ## Stack
 
-- Next.js App Router + TypeScript
-- Tailwind CSS v4
-- `@vercel/blob` for cloud uploads
-- Local filesystem fallback for Ubuntu / local dev
+- Next.js App Router + TypeScript + Tailwind CSS v4
+- Ubuntu Node media server (Express) for MP4 library/streaming
+- Vercel Blob optional for room state when hosted on Vercel

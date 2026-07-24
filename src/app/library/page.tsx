@@ -7,7 +7,7 @@ export default function LibraryPage() {
         <p className="eyebrow">Catalog</p>
         <h1>Song library</h1>
         <p className="panel-copy">
-          Keep your karaoke MP4s here. Rooms pull from this shared catalog.
+          Upload karaoke MP4s to your Ubuntu media server. Rooms play from there.
         </p>
       </header>
       <SongLibrary />

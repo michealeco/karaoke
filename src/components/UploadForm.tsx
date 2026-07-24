@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { upload } from "@vercel/blob/client";
 import type { Song } from "@/lib/types";
 import { formatBytes } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
@@ -10,20 +9,36 @@ type Props = {
   onUploaded?: (song: Song) => void;
 };
 
+type UploadConfig = {
+  mode: "ubuntu" | "local";
+  uploadUrl: string | null;
+  token: string | null;
+};
+
 export function UploadForm({ onUploaded }: Props) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [blobEnabled, setBlobEnabled] = useState(false);
+  const [config, setConfig] = useState<UploadConfig | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  async function loadConfig() {
+    const res = await fetch("/api/media/upload-token");
+    return readResponseJson<UploadConfig & { error?: string }>(res);
+  }
+
   useEffect(() => {
-    fetch("/api/songs")
-      .then((r) => readResponseJson<{ blobEnabled?: boolean }>(r))
-      .then((data) => setBlobEnabled(Boolean(data.blobEnabled)))
-      .catch(() => setBlobEnabled(false));
+    loadConfig()
+      .then((data) => {
+        setConfig({
+          mode: data.mode === "ubuntu" ? "ubuntu" : "local",
+          uploadUrl: data.uploadUrl,
+          token: data.token,
+        });
+      })
+      .catch(() => setConfig({ mode: "local", uploadUrl: null, token: null }));
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -38,33 +53,23 @@ export function UploadForm({ onUploaded }: Props) {
     setProgress("Uploading…");
 
     try {
+      const latest = await loadConfig();
       let song: Song;
 
-      if (blobEnabled) {
-        const blob = await upload(file.name, file, {
-          access: "public",
-          handleUploadUrl: "/api/upload",
-          multipart: true,
-          onUploadProgress: ({ percentage }) => {
-            setProgress(`Uploading… ${Math.round(percentage)}%`);
-          },
-        });
+      if (latest.mode === "ubuntu" && latest.uploadUrl && latest.token) {
+        const form = new FormData();
+        form.set("title", title.trim());
+        form.set("artist", artist.trim());
+        form.set("file", file);
 
-        setProgress("Saving to library…");
-        const res = await fetch("/api/songs", {
+        const res = await fetch(latest.uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: title.trim(),
-            artist: artist.trim(),
-            url: blob.url,
-            filename: blob.pathname,
-            size: file.size,
-          }),
+          headers: { Authorization: `Bearer ${latest.token}` },
+          body: form,
         });
         const data = await readResponseJson<{ song?: Song; error?: string }>(res);
-        if (!res.ok) throw new Error(data.error || "Failed to save song");
-        if (!data.song) throw new Error("Failed to save song");
+        if (!res.ok) throw new Error(data.error || "Upload to Ubuntu failed");
+        if (!data.song) throw new Error("Upload to Ubuntu failed");
         song = data.song;
       } else {
         const form = new FormData();
@@ -93,6 +98,12 @@ export function UploadForm({ onUploaded }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="upload-form">
+      <p className="panel-copy">
+        {config?.mode === "ubuntu"
+          ? "Files upload directly to your Ubuntu media server."
+          : "Local mode — files are saved on this machine."}
+      </p>
+
       <div className="field-row">
         <label>
           <span>Song title</span>
