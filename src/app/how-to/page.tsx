@@ -150,10 +150,9 @@ export default function HowToPage() {
             then press Play after a song is queued.
           </li>
           <li>
-            <strong>Upload fails / Unlock fails</strong> — set{" "}
-            <code>LIBRARY_ADMIN_SECRET</code> on Vercel (and redeploy). Use that
-            same password on the Library page. The media server must also be
-            online.
+            <strong>Upload fails / Unlock fails</strong> — in Vercel set{" "}
+            <code>LIBRARY_ADMIN_SECRET</code>, redeploy, then unlock on Library
+            with that password. The media server must also be online.
           </li>
         </ul>
       </section>

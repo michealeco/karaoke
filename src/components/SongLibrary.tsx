@@ -139,7 +139,7 @@ export function SongLibrary({ selectable, onSelect, compact }: Props) {
                   type="password"
                   value={ownerPassword}
                   onChange={(e) => setOwnerPassword(e.target.value)}
-                  placeholder="Enter to unlock uploads"
+                  placeholder="LIBRARY_ADMIN_SECRET from Vercel"
                   autoComplete="current-password"
                 />
               </label>

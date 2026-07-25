@@ -21,13 +21,13 @@ export function libraryAdminUnauthorized() {
     return NextResponse.json(
       {
         error:
-          "Library uploads are locked. Set LIBRARY_ADMIN_SECRET on the server, then unlock with that password.",
+          "Library uploads are locked. Add LIBRARY_ADMIN_SECRET in Vercel → Settings → Environment Variables, Redeploy, then unlock here with that password.",
       },
       { status: 503 },
     );
   }
   return NextResponse.json(
-    { error: "Only the library owner can do that. Unlock with your owner password." },
+    { error: "Wrong password. Unlock with the LIBRARY_ADMIN_SECRET you set on Vercel." },
     { status: 401 },
   );
 }
