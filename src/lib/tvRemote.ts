@@ -1,4 +1,4 @@
-/** Smart TV remote helpers — cursor remotes + D-pad. */
+/** Smart TV remote helpers — cursor remotes + D-pad across brands. */
 
 export type TvRemoteAction =
   | "ok"
@@ -28,27 +28,37 @@ export function resolveTvRemoteAction(e: KeyboardEvent): TvRemoteAction {
   const code = e.code;
   const keyCode = e.keyCode || e.which;
 
-  if (key === "ArrowRight" || keyCode === 39) return "focus-right";
-  if (key === "ArrowLeft" || keyCode === 37) return "focus-left";
-  if (key === "ArrowUp" || keyCode === 38) return "focus-up";
-  if (key === "ArrowDown" || keyCode === 40) return "focus-down";
+  if (key === "ArrowRight" || code === "ArrowRight" || keyCode === 39)
+    return "focus-right";
+  if (key === "ArrowLeft" || code === "ArrowLeft" || keyCode === 37)
+    return "focus-left";
+  if (key === "ArrowUp" || code === "ArrowUp" || keyCode === 38)
+    return "focus-up";
+  if (key === "ArrowDown" || code === "ArrowDown" || keyCode === 40)
+    return "focus-down";
 
-  // OK / Enter / Select — used by D-pad and many cursor remotes
+  // OK / Enter / Select — D-pad center + many cursor remotes
   if (
     key === "Enter" ||
     key === " " ||
     key === "Select" ||
+    key === "Accept" ||
+    key === "MediaSelect" ||
     key === "MediaPlayPause" ||
     code === "NumpadEnter" ||
+    code === "Enter" ||
+    code === "Space" ||
     keyCode === 13 ||
     keyCode === 32 ||
-    keyCode === 23 // Android TV DPAD_CENTER
+    keyCode === 23 || // Android TV DPAD_CENTER
+    keyCode === 66 || // some Android KEYCODE_ENTER
+    keyCode === 160 // NumpadEnter
   ) {
     return "ok";
   }
 
-  if (key === "MediaPlay" || keyCode === 415) return "play";
-  if (key === "MediaPause" || keyCode === 19) return "pause";
+  if (key === "MediaPlay" || keyCode === 415 || keyCode === 126) return "play";
+  if (key === "MediaPause" || keyCode === 19 || keyCode === 127) return "pause";
 
   if (
     key === "MediaTrackNext" ||
@@ -56,7 +66,8 @@ export function resolveTvRemoteAction(e: KeyboardEvent): TvRemoteAction {
     key === "n" ||
     key === "N" ||
     keyCode === 417 ||
-    keyCode === 418
+    keyCode === 418 ||
+    keyCode === 87
   ) {
     return "next";
   }
@@ -67,7 +78,8 @@ export function resolveTvRemoteAction(e: KeyboardEvent): TvRemoteAction {
     key === "p" ||
     key === "P" ||
     keyCode === 412 ||
-    keyCode === 419
+    keyCode === 419 ||
+    keyCode === 88
   ) {
     return "prev";
   }
@@ -77,10 +89,14 @@ export function resolveTvRemoteAction(e: KeyboardEvent): TvRemoteAction {
     key === "Backspace" ||
     key === "GoBack" ||
     key === "BrowserBack" ||
+    key === "XF86Back" ||
+    code === "Escape" ||
+    code === "Backspace" ||
     keyCode === 27 ||
     keyCode === 8 ||
-    keyCode === 10009 ||
-    keyCode === 461 // webOS back
+    keyCode === 10009 || // Tizen
+    keyCode === 461 || // webOS
+    keyCode === 166 // Android KEYCODE_BACK
   ) {
     return "back";
   }
@@ -88,10 +104,17 @@ export function resolveTvRemoteAction(e: KeyboardEvent): TvRemoteAction {
   return null;
 }
 
+function isVisible(el: HTMLElement) {
+  const style = window.getComputedStyle(el);
+  if (style.visibility === "hidden" || style.display === "none") return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 2 && r.height > 2;
+}
+
 function focusables() {
   return Array.from(
     document.querySelectorAll<HTMLElement>("[data-tv-focus]"),
-  ).filter((el) => !(el as HTMLButtonElement).disabled && el.offsetParent !== null);
+  ).filter((el) => !(el as HTMLButtonElement).disabled && isVisible(el));
 }
 
 /** Move focus in a screen direction (for D-pad remotes). */
@@ -102,8 +125,7 @@ export function moveTvFocusDirectional(
   if (!nodes.length) return;
 
   const active = document.activeElement as HTMLElement | null;
-  const current =
-    active && nodes.includes(active) ? active : nodes[0];
+  const current = active && nodes.includes(active) ? active : nodes[0];
   const cur = current.getBoundingClientRect();
   const cx = cur.left + cur.width / 2;
   const cy = cur.top + cur.height / 2;
@@ -126,42 +148,65 @@ export function moveTvFocusDirectional(
     if (dir === "up" && dy < -8) ok = true;
     if (!ok) continue;
 
-    // Prefer elements mostly aligned on the secondary axis
     const primary = dir === "left" || dir === "right" ? Math.abs(dx) : Math.abs(dy);
     const secondary = dir === "left" || dir === "right" ? Math.abs(dy) : Math.abs(dx);
-    const score = primary + secondary * 2;
+    const score = primary + secondary * 2.5;
     if (score < bestScore) {
       bestScore = score;
       best = el;
     }
   }
 
-  (best ?? (dir === "right" || dir === "down" ? nodes[nodes.length - 1] : nodes[0])).focus();
+  (
+    best ??
+    (dir === "right" || dir === "down" ? nodes[nodes.length - 1] : nodes[0])
+  ).focus();
 }
 
 export function moveTvFocus(direction: 1 | -1) {
   moveTvFocusDirectional(direction > 0 ? "right" : "left");
 }
 
+function clickableUnderPoint(x: number, y: number): HTMLElement | null {
+  const under = document.elementFromPoint(x, y) as HTMLElement | null;
+  if (!under) return null;
+  const tagged = under.closest("[data-tv-focus]") as HTMLElement | null;
+  if (tagged && !(tagged as HTMLButtonElement).disabled && isVisible(tagged)) {
+    return tagged;
+  }
+  const native = under.closest(
+    "button, a[href], [role='button'], input[type='submit'], input[type='button'], input[type='file']",
+  ) as HTMLElement | null;
+  if (native && !(native as HTMLButtonElement).disabled && isVisible(native)) {
+    return native;
+  }
+  return null;
+}
+
 /** Activate control under focus, or under cursor (magic remotes). */
 export function activateTvTarget(): boolean {
   const active = document.activeElement as HTMLElement | null;
-  if (active?.matches?.("[data-tv-focus]") && !(active as HTMLButtonElement).disabled) {
+  if (
+    active?.matches?.("[data-tv-focus]") &&
+    !(active as HTMLButtonElement).disabled &&
+    isVisible(active)
+  ) {
     active.click();
     return true;
   }
 
   const { x, y } = lastPointer;
-  const under = document.elementFromPoint(x, y) as HTMLElement | null;
-  const target = under?.closest?.("[data-tv-focus]") as HTMLElement | null;
-  if (target && !(target as HTMLButtonElement).disabled) {
-    target.focus();
-    target.click();
+  const under = clickableUnderPoint(x, y);
+  if (under) {
+    under.focus();
+    under.click();
     return true;
   }
 
-  const hovered = document.querySelector<HTMLElement>("[data-tv-focus]:hover");
-  if (hovered && !(hovered as HTMLButtonElement).disabled) {
+  const hovered = document.querySelector<HTMLElement>(
+    "[data-tv-focus]:hover, button:hover, a[href]:hover",
+  );
+  if (hovered && !(hovered as HTMLButtonElement).disabled && isVisible(hovered)) {
     hovered.focus();
     hovered.click();
     return true;

@@ -192,6 +192,29 @@ input {
   outline-offset: 4px;
 }
 
+/* Cursor remotes: highlight what the pointer is over */
+html[data-device="tv"] [data-tv-focus]:hover,
+html[data-device="tv"] button:hover,
+html[data-device="tv"] a[href]:hover {
+  outline: 3px solid rgba(226, 177, 90, 0.85);
+  outline-offset: 3px;
+}
+
+/* Larger tap/focus targets on TV */
+html[data-device="tv"] button,
+html[data-device="tv"] .btn,
+html[data-device="tv"] a.brand,
+html[data-device="tv"] .nav-links a {
+  min-height: 52px;
+}
+
+html[data-device="tv"] .btn-small,
+html[data-device="tv"] .btn-touch-sm {
+  min-height: 48px;
+  min-width: 96px;
+  padding: 0.65rem 1rem;
+}
+
 .device-card.active {
   border-color: rgba(226, 177, 90, 0.7);
   background: rgba(226, 177, 90, 0.12);

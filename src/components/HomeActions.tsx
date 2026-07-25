@@ -10,7 +10,6 @@ import {
 } from "@/lib/useLayoutMode";
 import { setDisplayName, setHostToken } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
-import { useTvRemoteNavigation } from "@/hooks/useTvRemoteNavigation";
 
 export function HomeActions() {
   const router = useRouter();
@@ -22,7 +21,6 @@ export function HomeActions() {
   const [error, setError] = useState<string | null>(null);
 
   const tvUi = layout === "tv" || device === "tv";
-  useTvRemoteNavigation(tvUi);
 
   useEffect(() => {
     setDevice(getStoredDevice() ?? layout);

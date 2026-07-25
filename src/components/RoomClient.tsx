@@ -10,12 +10,6 @@ import {
 } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
 import { useLayoutMode } from "@/lib/useLayoutMode";
-import {
-  activateTvTarget,
-  moveTvFocusDirectional,
-  resolveTvRemoteAction,
-  trackPointerPosition,
-} from "@/lib/tvRemote";
 import { SongLibrary } from "./SongLibrary";
 
 type Props = {
@@ -165,88 +159,28 @@ export function RoomClient({ code }: Props) {
 
   useEffect(() => {
     if (!isTv) return;
-    // Give the remote a focused target on smart TVs
     const t = window.setTimeout(() => {
       playBtnRef.current?.focus();
     }, 300);
     return () => window.clearTimeout(t);
   }, [isTv, room?.nowPlaying?.id]);
 
+  // Host playback from TV media keys (global provider dispatches this)
   useEffect(() => {
-    if (!isTv) return;
+    if (!isTv || !isHost) return;
 
-    const onMove = (e: MouseEvent) => trackPointerPosition(e);
-    window.addEventListener("mousemove", onMove, true);
-    window.addEventListener("pointermove", onMove as EventListener, true);
-
-    function onKey(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-      const action = resolveTvRemoteAction(e);
-      if (!action) return;
-
-      e.preventDefault();
-      e.stopPropagation();
+    function onMedia(e: Event) {
+      const detail = (e as CustomEvent<{ action: string }>).detail;
+      if (!detail?.action) return;
       bumpHud();
-
-      if (action === "focus-left") {
-        moveTvFocusDirectional("left");
-        return;
-      }
-      if (action === "focus-right") {
-        moveTvFocusDirectional("right");
-        return;
-      }
-      if (action === "focus-up") {
-        moveTvFocusDirectional("up");
-        return;
-      }
-      if (action === "focus-down") {
-        moveTvFocusDirectional("down");
-        return;
-      }
-      if (action === "back") {
-        return;
-      }
-
-      // OK: click focused button OR whatever is under the cursor
-      if (action === "ok") {
-        if (activateTvTarget()) return;
-        if (!isHost) return;
-        void control(
-          roomRef.current?.status === "playing" ? "pause" : "play",
-        );
-        return;
-      }
-
-      if (!isHost) return;
-
-      if (action === "play") {
-        void control("play");
-        return;
-      }
-      if (action === "pause") {
-        void control("pause");
-        return;
-      }
-      if (action === "next") {
-        void control("skip");
-        return;
-      }
-      if (action === "prev") {
-        void control("prev");
-      }
+      if (detail.action === "play") void control("play");
+      if (detail.action === "pause") void control("pause");
+      if (detail.action === "next") void control("skip");
+      if (detail.action === "prev") void control("prev");
     }
 
-    window.addEventListener("keydown", onKey, true);
-    document.addEventListener("keydown", onKey, true);
-    return () => {
-      window.removeEventListener("mousemove", onMove, true);
-      window.removeEventListener("pointermove", onMove as EventListener, true);
-      window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("keydown", onKey, true);
-    };
+    window.addEventListener("chorus-tv-media", onMedia);
+    return () => window.removeEventListener("chorus-tv-media", onMedia);
   }, [isTv, isHost, control, bumpHud]);
 
   async function addSong(song: Song) {
