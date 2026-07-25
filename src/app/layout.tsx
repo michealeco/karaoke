@@ -18,7 +18,7 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Chorus — Party Karaoke",
   description:
-    "Karaoke for smart TV and phone — stage on the big screen, queue from your pocket.",
+    "Karaoke for smart TV and phone. Open How to for a step-by-step party guide.",
 };
 
 export const viewport: Viewport = {

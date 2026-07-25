@@ -56,9 +56,10 @@ export function SongLibrary({ selectable, onSelect, compact }: Props) {
     <div className={`library ${compact ? "library-compact" : ""}`}>
       {!compact ? (
         <section className="panel">
-          <h2>Upload a track</h2>
+          <h2>1. Upload a karaoke video</h2>
           <p className="panel-copy">
-            Add karaoke MP4s with lyrics already on the video.
+            Use an MP4 that already shows lyrics on the video. Fill in the title,
+            pick the file, then tap Add to library.
           </p>
           <UploadForm onUploaded={(song) => setSongs((prev) => [song, ...prev])} />
         </section>
@@ -67,22 +68,29 @@ export function SongLibrary({ selectable, onSelect, compact }: Props) {
       <section className="panel">
         <div className="panel-head">
           <div>
-            <h2>{compact ? "Add from library" : "Library"}</h2>
-            <p className="panel-copy">Search by title or artist.</p>
+            <h2>{compact ? "2. Pick a song to queue" : "2. Your uploaded songs"}</h2>
+            <p className="panel-copy">
+              {compact
+                ? "Search, then tap Add to queue so it plays on the TV."
+                : "Search by title or artist. Remove songs you no longer need."}
+            </p>
           </div>
           <input
             className="search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search songs…"
+            placeholder="Type a title or artist…"
+            aria-label="Search songs by title or artist"
           />
         </div>
 
         {error ? <p className="form-error">{error}</p> : null}
-        {loading ? <p className="muted">Loading…</p> : null}
+        {loading ? <p className="muted">Loading songs…</p> : null}
         {empty ? (
           <p className="muted">
-            No songs yet. Upload an MP4 to get the party started.
+            {compact
+              ? "No songs yet. Ask the host to upload MP4s in Library first."
+              : "No songs yet. Upload an MP4 above, then start a room."}
           </p>
         ) : null}
 

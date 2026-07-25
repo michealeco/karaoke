@@ -241,7 +241,8 @@ export function RoomClient({ code }: Props) {
             <div className="tv-brand-block">
               <p className="eyebrow">Chorus</p>
               <p className="tv-join">
-                Join on your phone · room <strong>{code}</strong>
+                On your phone: open Chorus → Phone → type{" "}
+                <strong>{code}</strong> → Join room
               </p>
             </div>
             <div className="role-pill">{isHost ? "TV host" : "TV display"}</div>
@@ -266,8 +267,9 @@ export function RoomClient({ code }: Props) {
                   <div className="stage-empty tv-empty">
                     <p>Waiting for the first song…</p>
                     <p className="tv-empty-hint">
-                      Open Chorus on your phone and join with{" "}
-                      <strong>{code}</strong>
+                      On a phone, join with code <strong>{code}</strong>, open{" "}
+                      <strong>Add song</strong>, then tap{" "}
+                      <strong>Add to queue</strong>.
                     </p>
                   </div>
                 )}
@@ -276,9 +278,10 @@ export function RoomClient({ code }: Props) {
               <div className="tv-now">
                 <div>
                   <p className="eyebrow">Now playing</p>
-                  <h1>{room?.nowPlaying?.title ?? "Nothing queued"}</h1>
+                  <h1>{room?.nowPlaying?.title ?? "Nothing queued yet"}</h1>
                   <p className="tv-artist">
-                    {room?.nowPlaying?.artist ?? "Queue a song from a phone"}
+                    {room?.nowPlaying?.artist ??
+                      "Ask someone on a phone to add a song"}
                   </p>
                 </div>
 
@@ -323,12 +326,13 @@ export function RoomClient({ code }: Props) {
 
               {isHost ? (
                 <p className="tv-remote-hint">
-                  Remote: move cursor or use ↑↓←→ · OK to press · Back exits page
+                  Remote: point at Play / Skip and press OK, or use ↑ ↓ ← → then
+                  OK. Back leaves this page.
                 </p>
               ) : (
                 <p className="tv-remote-hint">
-                  Open this room on the TV as host (Start a room from the TV), or
-                  control playback from the host phone.
+                  This TV is display-only. To control Play/Skip, start the room
+                  from this TV, or use the host phone.
                 </p>
               )}
             </section>
@@ -348,10 +352,16 @@ export function RoomClient({ code }: Props) {
                   </li>
                 ))}
                 {!upNext.length ? (
-                  <li className="tv-queue-empty">No songs waiting</li>
+                  <li className="tv-queue-empty">
+                    Queue is empty — phones can add songs now
+                  </li>
                 ) : null}
               </ul>
-              <div className="tv-queue-count">{queue.length} in queue</div>
+              <div className="tv-queue-count">
+                {queue.length
+                  ? `${queue.length} song${queue.length === 1 ? "" : "s"} in queue`
+                  : "No songs in queue yet"}
+              </div>
             </aside>
           </div>
         </div>
@@ -364,18 +374,18 @@ export function RoomClient({ code }: Props) {
     <div className="phone-room">
       <header className="phone-top">
         <div>
-          <p className="eyebrow">Room</p>
+          <p className="eyebrow">You are in room</p>
           <h1 className="phone-code">{code}</h1>
         </div>
         <div className="role-pill">{isHost ? "Host" : "Guest"}</div>
       </header>
 
       <label className="name-field phone-name">
-        <span>Your name</span>
+        <span>Your name (shown on the queue)</span>
         <input
           value={name}
           onChange={(e) => saveName(e.target.value)}
-          placeholder="Guest"
+          placeholder="e.g. Alex"
           enterKeyHint="done"
         />
       </label>
@@ -383,9 +393,12 @@ export function RoomClient({ code }: Props) {
       {error ? <p className="form-error room-error">{error}</p> : null}
 
       <section className="phone-now panel">
-        <p className="eyebrow">Now playing</p>
-        <h2>{room?.nowPlaying?.title ?? "Nothing queued"}</h2>
-        <p>{room?.nowPlaying?.artist ?? "Add a song from the library"}</p>
+        <p className="eyebrow">Now playing on the TV</p>
+        <h2>{room?.nowPlaying?.title ?? "Nothing queued yet"}</h2>
+        <p>
+          {room?.nowPlaying?.artist ??
+            "Tap Add song below, then Add to queue"}
+        </p>
 
         {isHost && room?.nowPlaying ? (
           <div className="phone-video-wrap">
@@ -453,7 +466,8 @@ export function RoomClient({ code }: Props) {
           </div>
         ) : (
           <p className="phone-hint">
-            Video plays on the TV. Use the tabs below to queue songs.
+            The video plays on the TV. Use <strong>Add song</strong> below to
+            put tracks in the queue.
           </p>
         )}
       </section>
@@ -509,7 +523,8 @@ export function RoomClient({ code }: Props) {
             })}
             {!queue.length ? (
               <li className="muted phone-empty">
-                Queue is empty. Tap Add song.
+                Queue is empty. Tap <strong>Add song</strong>, find a track, then
+                tap <strong>Add to queue</strong>.
               </li>
             ) : null}
           </ul>

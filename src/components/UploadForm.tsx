@@ -44,7 +44,7 @@ export function UploadForm({ onUploaded }: Props) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file || !title.trim()) {
-      setError("Title and MP4 file are required.");
+      setError("Enter a song title and choose an .mp4 file, then try again.");
       return;
     }
 
@@ -103,32 +103,32 @@ export function UploadForm({ onUploaded }: Props) {
     <form onSubmit={onSubmit} className="upload-form">
       <p className="panel-copy">
         {config?.mode === "ubuntu"
-          ? "Files upload directly to your Ubuntu media server."
-          : "Local mode — files are saved on this machine."}
+          ? "Uploads go to your media server so every room can play them."
+          : "Dev mode: files stay on this computer until you connect a media server."}
       </p>
 
       <div className="field-row">
         <label>
-          <span>Song title</span>
+          <span>Song title (required)</span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Bohemian Rhapsody"
+            placeholder="e.g. Bohemian Rhapsody"
             required
           />
         </label>
         <label>
-          <span>Artist</span>
+          <span>Artist (optional)</span>
           <input
             value={artist}
             onChange={(e) => setArtist(e.target.value)}
-            placeholder="Queen"
+            placeholder="e.g. Queen"
           />
         </label>
       </div>
 
       <label className="file-field">
-        <span>Karaoke MP4</span>
+        <span>Karaoke MP4 file</span>
         <input
           type="file"
           accept="video/mp4,.mp4"
@@ -137,10 +137,10 @@ export function UploadForm({ onUploaded }: Props) {
         />
         {file ? (
           <em>
-            {file.name} · {formatBytes(file.size)}
+            Ready: {file.name} · {formatBytes(file.size)}
           </em>
         ) : (
-          <em>Drop or choose an .mp4 with burned-in lyrics</em>
+          <em>Choose an .mp4 that already has lyrics on screen</em>
         )}
       </label>
 
@@ -148,7 +148,7 @@ export function UploadForm({ onUploaded }: Props) {
       {progress ? <p className="form-progress">{progress}</p> : null}
 
       <button type="submit" className="btn btn-primary" disabled={busy}>
-        {busy ? "Uploading…" : "Add to library"}
+        {busy ? "Uploading… please wait" : "Add to library"}
       </button>
     </form>
   );

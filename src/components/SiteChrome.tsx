@@ -20,6 +20,9 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
               Chorus
             </Link>
             <div className="nav-links">
+              <Link href="/how-to" data-tv-focus tabIndex={0}>
+                How to
+              </Link>
               <Link href="/library" data-tv-focus tabIndex={0}>
                 Library
               </Link>

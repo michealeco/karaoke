@@ -55,13 +55,16 @@ export function HomeActions() {
   async function joinRoom(e?: React.FormEvent) {
     e?.preventDefault();
     const cleaned = code.trim().toUpperCase();
-    if (!cleaned) return;
+    if (!cleaned) {
+      setError("Type the room code shown on the TV, then tap Join.");
+      return;
+    }
     setStoredDevice(device);
     if (name.trim()) setDisplayName(name);
     setBusy(true);
     const res = await fetch(`/api/rooms/${cleaned}`);
     if (!res.ok) {
-      setError("Room not found. Check the code and try again.");
+      setError("That room code was not found. Check the TV screen and try again.");
       setBusy(false);
       return;
     }
@@ -70,7 +73,8 @@ export function HomeActions() {
 
   return (
     <div className={`home-actions ${tvUi ? "home-actions-tv" : ""}`}>
-      <div className="device-picker" role="group" aria-label="This device">
+      <p className="step-label">1. What device is this?</p>
+      <div className="device-picker" role="group" aria-label="What device is this?">
         <button
           type="button"
           data-tv-focus
@@ -79,7 +83,7 @@ export function HomeActions() {
           onClick={() => pickDevice("phone")}
         >
           <strong>Phone</strong>
-          <span>Queue songs & search the library</span>
+          <span>Search songs and add them to the queue</span>
         </button>
         <button
           type="button"
@@ -89,27 +93,33 @@ export function HomeActions() {
           onClick={() => pickDevice("tv")}
         >
           <strong>Smart TV</strong>
-          <span>Stage display for the party</span>
+          <span>Show the big stage and play video</span>
         </button>
       </div>
 
       <p className="layout-hint">
-        Point the remote cursor at a button and press OK — or use ↑ ↓ ← → then OK.
         {device === "tv"
-          ? " Smart TV mode is on."
-          : " Select Smart TV for the best remote experience."}
+          ? "TV mode is on. Point the remote at a button and press OK, or use ↑ ↓ ← → then OK."
+          : "Phone mode is on. To use a remote on a TV, choose Smart TV first."}
       </p>
 
+      <p className="step-label">2. Your name (optional)</p>
       <label className="name-field home-name">
-        <span>Your name</span>
+        <span className="sr-only">Your name</span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Optional"
+          placeholder="Shown next to songs you queue"
           enterKeyHint="done"
+          aria-label="Your name"
         />
       </label>
 
+      <p className="step-label">
+        {device === "tv"
+          ? "3. Start the party on this TV"
+          : "3. Start a new room, or join one"}
+      </p>
       <button
         type="button"
         data-tv-focus
@@ -118,7 +128,11 @@ export function HomeActions() {
         onClick={createRoom}
         disabled={busy}
       >
-        {busy ? "Opening…" : "Start a room"}
+        {busy
+          ? "Opening room…"
+          : device === "tv"
+            ? "Start a room on this TV"
+            : "Start a new room"}
       </button>
 
       <form
@@ -130,9 +144,9 @@ export function HomeActions() {
         <input
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="Room code"
+          placeholder="Room code from the TV"
           maxLength={6}
-          aria-label="Room code"
+          aria-label="Room code from the TV"
           inputMode="text"
           autoCapitalize="characters"
           autoCorrect="off"
@@ -144,7 +158,7 @@ export function HomeActions() {
           className="btn btn-ghost btn-xl"
           disabled={busy}
         >
-          Join
+          Join room
         </button>
       </form>
 
