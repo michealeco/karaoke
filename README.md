@@ -5,25 +5,14 @@ Party karaoke web app: **songs live on your Ubuntu server**, the web UI can run 
 ## Architecture
 
 - **Ubuntu `media-server/`** — songs (MP4s) **and** room/queue JSON
-- **Next.js on Vercel** — UI only; talks to Ubuntu over your ngrok URL
-- **No Vercel Blob required** when `MEDIA_API_URL` + `MEDIA_API_SECRET` are set
+- **Next.js on Vercel** — UI only
+- **Recommended (1 ngrok domain):** Nginx path split — see [`media-server/SETUP-SHARED-DOMAIN.md`](media-server/SETUP-SHARED-DOMAIN.md)
+  - Vault: `https://your-domain.ngrok-free.dev`
+  - Karaoke: `https://your-domain.ngrok-free.dev/chorus`
 
-## 1) Start the Ubuntu media server (+ ngrok)
+## 1) Ubuntu setup (shared domain)
 
-```bash
-cd media-server
-cp .env.example .env
-npm install
-npm start
-```
-
-In another terminal:
-
-```bash
-ngrok http 4050
-```
-
-Set `PUBLIC_BASE_URL` in `media-server/.env` to the ngrok HTTPS URL, restart the media server, and set the same URL as `MEDIA_API_URL` on Vercel (plus matching `MEDIA_API_SECRET`). Details: `media-server/README.md`.
+Follow **[`media-server/SETUP-SHARED-DOMAIN.md`](media-server/SETUP-SHARED-DOMAIN.md)** end-to-end (Nginx + media service + one ngrok tunnel).
 
 ## 2) Run the web app locally
 
@@ -38,12 +27,10 @@ If `MEDIA_API_URL` is unset, local mode saves MP4s under `public/uploads/` (dev 
 
 ## 3) Deploy the web app to Vercel
 
-1. Push this repo and import it in Vercel.
-2. Set env vars (same as Ubuntu/ngrok):
-   - `MEDIA_API_URL` = `https://….ngrok-free.app`
-   - `MEDIA_API_SECRET` = same secret as `media-server/.env`
-3. On Ubuntu media-server, set `CORS_ORIGINS` to your Vercel URL.
-4. Redeploy.
+1. Set env vars:
+   - `MEDIA_API_URL` = `https://smirk-keep-undone.ngrok-free.dev/chorus`
+   - `MEDIA_API_SECRET` = same as Ubuntu `.env`
+2. Redeploy.
 
 Vercel Blob is **not** required — Ubuntu holds songs and room state.
 

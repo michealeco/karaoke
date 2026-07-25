@@ -1,0 +1,19 @@
+# ONE ngrok tunnel only. Nginx on :8088 splits Vault + Karaoke by path.
+#
+# Copy over your current tunnels config (backup first):
+#   cp ~/.config/ngrok/ngrok.yml ~/.config/ngrok/ngrok.yml.bak
+#   cp ~/karaoke/media-server/ngrok.shared-domain.yml.example ~/.config/ngrok/ngrok.yml
+#   nano ~/.config/ngrok/ngrok.yml   # paste your real authtoken + domain
+#
+# Then:
+#   pkill ngrok
+#   sudo systemctl restart ngrok   # or: ngrok start --all --config ~/.config/ngrok/ngrok.yml
+
+version: "2"
+authtoken: REPLACE_WITH_YOUR_NGROK_AUTHTOKEN
+
+tunnels:
+  shared:
+    addr: 8088
+    proto: http
+    domain: smirk-keep-undone.ngrok-free.dev

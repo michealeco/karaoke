@@ -1,6 +1,6 @@
 [Unit]
 Description=ngrok tunnels (Eco Fam + Chorus media + other apps)
-After=network-online.target
+After=network-online.target nginx.service
 Wants=network-online.target
 
 [Service]
