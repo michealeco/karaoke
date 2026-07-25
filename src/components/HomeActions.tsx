@@ -10,19 +10,23 @@ import {
 } from "@/lib/useLayoutMode";
 import { setDisplayName, setHostToken } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
+import { useTvRemoteNavigation } from "@/hooks/useTvRemoteNavigation";
 
 export function HomeActions() {
   const router = useRouter();
-  const viewport = useLayoutMode();
+  const layout = useLayoutMode();
   const [device, setDevice] = useState<LayoutMode>("phone");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const tvUi = layout === "tv" || device === "tv";
+  useTvRemoteNavigation(tvUi);
+
   useEffect(() => {
-    setDevice(getStoredDevice() ?? viewport);
-  }, [viewport]);
+    setDevice(getStoredDevice() ?? layout);
+  }, [layout]);
 
   function pickDevice(next: LayoutMode) {
     setDevice(next);
@@ -50,8 +54,8 @@ export function HomeActions() {
     }
   }
 
-  async function joinRoom(e: React.FormEvent) {
-    e.preventDefault();
+  async function joinRoom(e?: React.FormEvent) {
+    e?.preventDefault();
     const cleaned = code.trim().toUpperCase();
     if (!cleaned) return;
     setStoredDevice(device);
@@ -67,10 +71,12 @@ export function HomeActions() {
   }
 
   return (
-    <div className="home-actions">
+    <div className={`home-actions ${tvUi ? "home-actions-tv" : ""}`}>
       <div className="device-picker" role="group" aria-label="This device">
         <button
           type="button"
+          data-tv-focus
+          tabIndex={0}
           className={`device-card ${device === "phone" ? "active" : ""}`}
           onClick={() => pickDevice("phone")}
         >
@@ -79,6 +85,8 @@ export function HomeActions() {
         </button>
         <button
           type="button"
+          data-tv-focus
+          tabIndex={0}
           className={`device-card ${device === "tv" ? "active" : ""}`}
           onClick={() => pickDevice("tv")}
         >
@@ -88,8 +96,10 @@ export function HomeActions() {
       </div>
 
       <p className="layout-hint">
-        Layout follows your screen size — narrow = phone, wide landscape = TV.
-        {viewport === "tv" ? " This screen is in TV layout now." : " This screen is in phone layout now."}
+        Use ← → on the remote to move, then OK to select.
+        {device === "tv"
+          ? " Smart TV mode is selected."
+          : " Pick Smart TV for remote controls."}
       </p>
 
       <label className="name-field home-name">
@@ -104,6 +114,8 @@ export function HomeActions() {
 
       <button
         type="button"
+        data-tv-focus
+        tabIndex={0}
         className="btn btn-primary btn-xl"
         onClick={createRoom}
         disabled={busy}
@@ -111,7 +123,12 @@ export function HomeActions() {
         {busy ? "Opening…" : "Start a room"}
       </button>
 
-      <form className="join-form" onSubmit={joinRoom}>
+      <form
+        className="join-form"
+        onSubmit={(e) => {
+          void joinRoom(e);
+        }}
+      >
         <input
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -122,7 +139,13 @@ export function HomeActions() {
           autoCapitalize="characters"
           autoCorrect="off"
         />
-        <button type="submit" className="btn btn-ghost btn-xl" disabled={busy}>
+        <button
+          type="submit"
+          data-tv-focus
+          tabIndex={0}
+          className="btn btn-ghost btn-xl"
+          disabled={busy}
+        >
           Join
         </button>
       </form>

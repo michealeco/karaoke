@@ -5,10 +5,10 @@ import { useEffect, useSyncExternalStore } from "react";
 export type LayoutMode = "phone" | "tv";
 
 const STORAGE_KEY = "chorus-device";
+const CHANGE_EVENT = "chorus-device-change";
 
-/** Wide landscape = TV stage; everything else = phone controller. */
-export const TV_QUERY =
-  "(min-width: 900px) and (min-height: 500px) and (orientation: landscape)";
+/** Lenient TV detection — many TV browsers report odd sizes. */
+export const TV_QUERY = "(min-width: 800px)";
 
 export function getStoredDevice(): LayoutMode | null {
   if (typeof window === "undefined") return null;
@@ -18,6 +18,26 @@ export function getStoredDevice(): LayoutMode | null {
 
 export function setStoredDevice(mode: LayoutMode) {
   localStorage.setItem(STORAGE_KEY, mode);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  }
+}
+
+export function isSmartTvUserAgent() {
+  if (typeof navigator === "undefined") return false;
+  return /SmartTV|SMART-TV|SmartTv|Tizen|WebOS|Web0S|NETCAST|BRAVIA|AppleTV|Android TV|GoogleTV|HbbTV|Viera|PhilipsTV|CrKey|TV Safari|Silk/i.test(
+    navigator.userAgent,
+  );
+}
+
+function detectMode(): LayoutMode {
+  const stored = getStoredDevice();
+  if (stored) return stored;
+  if (isSmartTvUserAgent()) return "tv";
+  if (window.matchMedia(TV_QUERY).matches) return "tv";
+  // Large screens even in "portrait" CSS on some TVs
+  if (Math.min(window.innerWidth, window.innerHeight) >= 700) return "tv";
+  return "phone";
 }
 
 function subscribe(onStoreChange: () => void) {
@@ -25,30 +45,31 @@ function subscribe(onStoreChange: () => void) {
   mql.addEventListener("change", onStoreChange);
   window.addEventListener("orientationchange", onStoreChange);
   window.addEventListener("resize", onStoreChange);
+  window.addEventListener(CHANGE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
   return () => {
     mql.removeEventListener("change", onStoreChange);
     window.removeEventListener("orientationchange", onStoreChange);
     window.removeEventListener("resize", onStoreChange);
+    window.removeEventListener(CHANGE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
   };
-}
-
-function getSnapshot(): LayoutMode {
-  return window.matchMedia(TV_QUERY).matches ? "tv" : "phone";
 }
 
 function getServerSnapshot(): LayoutMode {
   return "phone";
 }
 
-/**
- * Viewport-driven layout (true responsive).
- * localStorage is only a home-screen hint, not a layout lock.
- */
+/** Prefer: saved choice → smart TV UA → wide screen → phone */
 export function useLayoutMode(): LayoutMode {
-  const mode = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const mode = useSyncExternalStore(subscribe, detectMode, getServerSnapshot);
 
   useEffect(() => {
     document.documentElement.dataset.device = mode;
+    // First visit on a TV: remember TV so remotes keep working
+    if (!getStoredDevice() && (isSmartTvUserAgent() || mode === "tv")) {
+      setStoredDevice("tv");
+    }
   }, [mode]);
 
   return mode;
