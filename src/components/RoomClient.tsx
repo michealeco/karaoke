@@ -10,7 +10,12 @@ import {
 } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
 import { useLayoutMode } from "@/lib/useLayoutMode";
-import { moveTvFocus, resolveTvRemoteAction } from "@/lib/tvRemote";
+import {
+  activateTvTarget,
+  moveTvFocusDirectional,
+  resolveTvRemoteAction,
+  trackPointerPosition,
+} from "@/lib/tvRemote";
 import { SongLibrary } from "./SongLibrary";
 
 type Props = {
@@ -170,6 +175,10 @@ export function RoomClient({ code }: Props) {
   useEffect(() => {
     if (!isTv) return;
 
+    const onMove = (e: MouseEvent) => trackPointerPosition(e);
+    window.addEventListener("mousemove", onMove, true);
+    window.addEventListener("pointermove", onMove as EventListener, true);
+
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -181,22 +190,33 @@ export function RoomClient({ code }: Props) {
       e.stopPropagation();
       bumpHud();
 
-      if (action === "focus-next") {
-        moveTvFocus(1);
+      if (action === "focus-left") {
+        moveTvFocusDirectional("left");
         return;
       }
-      if (action === "focus-prev") {
-        moveTvFocus(-1);
+      if (action === "focus-right") {
+        moveTvFocusDirectional("right");
+        return;
+      }
+      if (action === "focus-up") {
+        moveTvFocusDirectional("up");
+        return;
+      }
+      if (action === "focus-down") {
+        moveTvFocusDirectional("down");
         return;
       }
       if (action === "back") {
         return;
       }
 
-      // OK on a focused control → activate it (Prev / Play / Skip)
-      const active = document.activeElement as HTMLElement | null;
-      if (action === "playpause" && active?.matches?.("[data-tv-focus]")) {
-        active.click();
+      // OK: click focused button OR whatever is under the cursor
+      if (action === "ok") {
+        if (activateTvTarget()) return;
+        if (!isHost) return;
+        void control(
+          roomRef.current?.status === "playing" ? "pause" : "play",
+        );
         return;
       }
 
@@ -208,12 +228,6 @@ export function RoomClient({ code }: Props) {
       }
       if (action === "pause") {
         void control("pause");
-        return;
-      }
-      if (action === "playpause") {
-        void control(
-          roomRef.current?.status === "playing" ? "pause" : "play",
-        );
         return;
       }
       if (action === "next") {
@@ -228,6 +242,8 @@ export function RoomClient({ code }: Props) {
     window.addEventListener("keydown", onKey, true);
     document.addEventListener("keydown", onKey, true);
     return () => {
+      window.removeEventListener("mousemove", onMove, true);
+      window.removeEventListener("pointermove", onMove as EventListener, true);
       window.removeEventListener("keydown", onKey, true);
       document.removeEventListener("keydown", onKey, true);
     };
@@ -373,7 +389,7 @@ export function RoomClient({ code }: Props) {
 
               {isHost ? (
                 <p className="tv-remote-hint">
-                  Remote: ← → move · OK play/pause · color/media keys skip
+                  Remote: move cursor or use ↑↓←→ · OK to press · Back exits page
                 </p>
               ) : (
                 <p className="tv-remote-hint">

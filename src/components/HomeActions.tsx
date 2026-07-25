@@ -96,10 +96,10 @@ export function HomeActions() {
       </div>
 
       <p className="layout-hint">
-        Use ← → on the remote to move, then OK to select.
+        Point the remote cursor at a button and press OK — or use ↑ ↓ ← → then OK.
         {device === "tv"
-          ? " Smart TV mode is selected."
-          : " Pick Smart TV for remote controls."}
+          ? " Smart TV mode is on."
+          : " Select Smart TV for the best remote experience."}
       </p>
 
       <label className="name-field home-name">

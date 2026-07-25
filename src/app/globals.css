@@ -164,6 +164,13 @@ input {
   display: grid;
   gap: 0.25rem;
   align-content: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.device-card:hover {
+  border-color: rgba(226, 177, 90, 0.45);
+  background: rgba(226, 177, 90, 0.08);
 }
 
 .device-card strong {
