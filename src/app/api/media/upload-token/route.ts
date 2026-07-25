@@ -4,9 +4,17 @@ import {
   getPublicUploadUrl,
   isRemoteMediaEnabled,
 } from "@/lib/media";
+import {
+  isLibraryAdminAuthorized,
+  libraryAdminUnauthorized,
+} from "@/lib/libraryAdmin";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    if (!isLibraryAdminAuthorized(request)) {
+      return libraryAdminUnauthorized();
+    }
+
     if (!isRemoteMediaEnabled()) {
       return NextResponse.json({
         mode: "local",

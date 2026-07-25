@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { removeSong } from "@/lib/songs";
+import {
+  isLibraryAdminAuthorized,
+  libraryAdminUnauthorized,
+} from "@/lib/libraryAdmin";
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    if (!isLibraryAdminAuthorized(request)) {
+      return libraryAdminUnauthorized();
+    }
+
     const { id } = await context.params;
     const ok = await removeSong(id);
     if (!ok) {

@@ -1,4 +1,5 @@
 const DISPLAY_KEY = "chorus-display-name";
+const LIBRARY_ADMIN_KEY = "chorus-library-admin";
 
 export function getHostToken(code: string): string | null {
   if (typeof window === "undefined") return null;
@@ -21,6 +22,25 @@ export function setDisplayName(name: string) {
 export function hostHeaders(code: string): HeadersInit {
   const token = getHostToken(code);
   return token ? { "x-host-token": token } : {};
+}
+
+/** Owner password for library upload/remove (session only). */
+export function getLibraryAdminPassword(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(LIBRARY_ADMIN_KEY);
+}
+
+export function setLibraryAdminPassword(password: string) {
+  sessionStorage.setItem(LIBRARY_ADMIN_KEY, password);
+}
+
+export function clearLibraryAdminPassword() {
+  sessionStorage.removeItem(LIBRARY_ADMIN_KEY);
+}
+
+export function libraryAdminHeaders(): HeadersInit {
+  const password = getLibraryAdminPassword();
+  return password ? { "x-library-admin": password } : {};
 }
 
 export function formatBytes(size: number) {

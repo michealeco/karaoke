@@ -8,8 +8,9 @@ export default function LibraryPage() {
         <p className="eyebrow">Before the party</p>
         <h1>Song library</h1>
         <p className="panel-copy">
-          Upload karaoke MP4s here first. Then start a room and queue these
-          songs from any phone. Need the full walkthrough?{" "}
+          Browse every karaoke track here. Only the library owner can upload or
+          remove files (unlock with the owner password). Need the full
+          walkthrough?{" "}
           <Link href="/how-to" className="inline-link">
             Open How to
           </Link>

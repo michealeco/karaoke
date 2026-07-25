@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Song } from "@/lib/types";
-import { formatBytes } from "@/lib/client";
+import { formatBytes, libraryAdminHeaders } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
 
 type Props = {
@@ -25,13 +25,20 @@ export function UploadForm({ onUploaded }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   async function loadConfig() {
-    const res = await fetch("/api/media/upload-token");
+    const res = await fetch("/api/media/upload-token", {
+      headers: libraryAdminHeaders(),
+    });
     return readResponseJson<UploadConfig & { error?: string }>(res);
   }
 
   useEffect(() => {
     loadConfig()
       .then((data) => {
+        if (data.error) {
+          setError(data.error);
+          setConfig({ mode: "local", uploadUrl: null, token: null });
+          return;
+        }
         setConfig({
           mode: data.mode === "ubuntu" ? "ubuntu" : "local",
           uploadUrl: data.uploadUrl,
@@ -54,6 +61,7 @@ export function UploadForm({ onUploaded }: Props) {
 
     try {
       const latest = await loadConfig();
+      if (latest.error) throw new Error(latest.error);
       let song: Song;
 
       if (latest.mode === "ubuntu" && latest.uploadUrl && latest.token) {
@@ -79,7 +87,11 @@ export function UploadForm({ onUploaded }: Props) {
         form.set("title", title.trim());
         form.set("artist", artist.trim());
         form.set("file", file);
-        const res = await fetch("/api/songs", { method: "POST", body: form });
+        const res = await fetch("/api/songs", {
+          method: "POST",
+          headers: libraryAdminHeaders(),
+          body: form,
+        });
         const data = await readResponseJson<{ song?: Song; error?: string }>(res);
         if (!res.ok) throw new Error(data.error || "Upload failed");
         if (!data.song) throw new Error("Upload failed");

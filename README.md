@@ -8,12 +8,12 @@ Party karaoke for **smart TV + phones**. Songs live on your Ubuntu server; the w
 
 Do these steps in order.
 
-### 1. Add songs first
+### 1. Add songs first (owner only)
 
 1. Open the site → **Library** (top menu), or go to `/library`.
-2. Enter the **song title** (and optional artist).
-3. Choose a karaoke **.mp4** that already has lyrics on the video.
-4. Tap **Add to library** and wait until upload finishes.
+2. Guests can **browse** the list. Only you can upload.
+3. Enter your **owner password** (the `LIBRARY_ADMIN_SECRET` you set on Vercel) and tap **Unlock uploads**.
+4. Enter the **song title** (and optional artist), choose a karaoke **.mp4**, tap **Add to library**.
 
 Rooms can only play songs that are already in the library.
 
@@ -84,6 +84,7 @@ If `MEDIA_API_URL` is unset, local mode saves MP4s under `public/uploads/` (dev 
 1. Set env vars:
    - `MEDIA_API_URL` = `https://smirk-keep-undone.ngrok-free.dev/chorus`
    - `MEDIA_API_SECRET` = same as Ubuntu `.env`
+   - `LIBRARY_ADMIN_SECRET` = a private password only you know (unlocks Library uploads)
 2. Redeploy.
 
 Vercel Blob is **not** required — Ubuntu holds songs and room state.

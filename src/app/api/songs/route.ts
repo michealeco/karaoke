@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { addSong, listSongs, searchSongs, songsStorageMode } from "@/lib/songs";
 import { isBlobEnabled, saveLocalUpload } from "@/lib/storage";
 import { isRemoteMediaEnabled } from "@/lib/media";
+import {
+  isLibraryAdminAuthorized,
+  libraryAdminUnauthorized,
+} from "@/lib/libraryAdmin";
 
 export const runtime = "nodejs";
 
@@ -18,7 +22,6 @@ export async function GET(request: Request) {
     return NextResponse.json({
       songs,
       mode: songsStorageMode(),
-      // legacy flag — uploads no longer use Vercel Blob for songs
       blobEnabled: false,
       remoteMedia: isRemoteMediaEnabled(),
       localUploads: !isRemoteMediaEnabled() && !isBlobEnabled(),
@@ -30,6 +33,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    if (!isLibraryAdminAuthorized(request)) {
+      return libraryAdminUnauthorized();
+    }
+
     if (isRemoteMediaEnabled()) {
       return NextResponse.json(
         {

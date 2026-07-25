@@ -1,7 +1,15 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
+import {
+  isLibraryAdminAuthorized,
+  libraryAdminUnauthorized,
+} from "@/lib/libraryAdmin";
 
 export async function POST(request: Request): Promise<NextResponse> {
+  if (!isLibraryAdminAuthorized(request)) {
+    return libraryAdminUnauthorized();
+  }
+
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json(
       {

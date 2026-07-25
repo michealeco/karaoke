@@ -25,16 +25,21 @@ export default function HowToPage() {
           </li>
           <li>
             <strong>Karaoke MP4 files</strong> — videos with lyrics already burned
-            into the picture (upload them in Library first).
+            into the picture (only the library owner uploads these in Library).
           </li>
         </ol>
       </section>
 
       <section className="panel howto-section">
-        <h2>Step 1 — Add songs (phone or computer)</h2>
+        <h2>Step 1 — Add songs (library owner only)</h2>
         <ol className="howto-list">
           <li>
-            Open <Link href="/library">Library</Link> in the top menu.
+            Open <Link href="/library">Library</Link> in the top menu. Guests can
+            browse the list but cannot upload.
+          </li>
+          <li>
+            If you are the owner, enter your <strong>owner password</strong> and
+            tap <strong>Unlock uploads</strong>.
           </li>
           <li>
             Type the <strong>song title</strong> and optional artist.
@@ -49,7 +54,8 @@ export default function HowToPage() {
         </ol>
         <p className="panel-copy howto-note">
           Do this before the party (or anytime). Rooms can only play songs that
-          are already in the library.
+          are already in the library. Guests queue songs from rooms — they never
+          upload files.
         </p>
       </section>
 
@@ -132,7 +138,8 @@ export default function HowToPage() {
             and that you’re on the same website.
           </li>
           <li>
-            <strong>No songs</strong> — upload MP4s in Library first.
+            <strong>No songs</strong> — ask the owner to unlock Library and upload
+            MP4s first.
           </li>
           <li>
             <strong>TV looks like a phone</strong> — on the home screen, tap{" "}
@@ -143,8 +150,10 @@ export default function HowToPage() {
             then press Play after a song is queued.
           </li>
           <li>
-            <strong>Upload fails</strong> — the media server must be online (host
-            setup); see the README for server/Vercel env vars.
+            <strong>Upload fails / Unlock fails</strong> — set{" "}
+            <code>LIBRARY_ADMIN_SECRET</code> on Vercel (and redeploy). Use that
+            same password on the Library page. The media server must also be
+            online.
           </li>
         </ul>
       </section>
