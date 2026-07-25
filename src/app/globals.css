@@ -804,9 +804,23 @@ body:has(.tv-shell) {
   border-radius: 0.75rem;
 }
 
+.btn-tv:focus,
+.btn-tv:focus-visible,
+[data-tv-focus]:focus,
+[data-tv-focus]:focus-visible {
+  outline: 4px solid var(--gold);
+  outline-offset: 4px;
+  transform: scale(1.04);
+}
+
 .btn-tv-main {
   min-width: 180px;
   font-size: 1.4rem;
+}
+
+.tv-shell {
+  /* Help some TV browsers treat the page as a focus root */
+  outline: none;
 }
 
 .tv-remote-hint {

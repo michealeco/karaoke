@@ -10,6 +10,7 @@ import {
 } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
 import { useLayoutMode } from "@/lib/useLayoutMode";
+import { moveTvFocus, resolveTvRemoteAction } from "@/lib/tvRemote";
 import { SongLibrary } from "./SongLibrary";
 
 type Props = {
@@ -155,29 +156,82 @@ export function RoomClient({ code }: Props) {
   );
 
   const isHost = room?.isHost || Boolean(getHostToken(code));
+  const playBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!isTv || !isHost) return;
+    if (!isTv) return;
+    // Give the remote a focused target on smart TVs
+    const t = window.setTimeout(() => {
+      playBtnRef.current?.focus();
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [isTv, room?.nowPlaying?.id]);
+
+  useEffect(() => {
+    if (!isTv) return;
 
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
 
-      if (e.key === " " || e.key === "k" || e.key === "K" || e.key === "Enter") {
-        e.preventDefault();
-        void control(roomRef.current?.status === "playing" ? "pause" : "play");
-      } else if (e.key === "ArrowRight" || e.key === "n" || e.key === "N") {
-        e.preventDefault();
+      const action = resolveTvRemoteAction(e);
+      if (!action) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      bumpHud();
+
+      if (action === "focus-next") {
+        moveTvFocus(1);
+        return;
+      }
+      if (action === "focus-prev") {
+        moveTvFocus(-1);
+        return;
+      }
+      if (action === "back") {
+        return;
+      }
+
+      // OK on a focused control → activate it (Prev / Play / Skip)
+      const active = document.activeElement as HTMLElement | null;
+      if (action === "playpause" && active?.matches?.("[data-tv-focus]")) {
+        active.click();
+        return;
+      }
+
+      if (!isHost) return;
+
+      if (action === "play") {
+        void control("play");
+        return;
+      }
+      if (action === "pause") {
+        void control("pause");
+        return;
+      }
+      if (action === "playpause") {
+        void control(
+          roomRef.current?.status === "playing" ? "pause" : "play",
+        );
+        return;
+      }
+      if (action === "next") {
         void control("skip");
-      } else if (e.key === "ArrowLeft" || e.key === "p" || e.key === "P") {
-        e.preventDefault();
+        return;
+      }
+      if (action === "prev") {
         void control("prev");
       }
     }
 
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isTv, isHost, control]);
+    window.addEventListener("keydown", onKey, true);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [isTv, isHost, control, bumpHud]);
 
   async function addSong(song: Song) {
     setBusy(true);
@@ -279,18 +333,23 @@ export function RoomClient({ code }: Props) {
                 </div>
 
                 {isHost ? (
-                  <div className="tv-transport">
+                  <div className="tv-transport" role="toolbar" aria-label="Playback">
                     <button
                       type="button"
                       className="btn btn-ghost btn-tv"
+                      data-tv-focus
+                      tabIndex={0}
                       disabled={busy}
                       onClick={() => control("prev")}
                     >
                       Prev
                     </button>
                     <button
+                      ref={playBtnRef}
                       type="button"
                       className="btn btn-primary btn-tv btn-tv-main"
+                      data-tv-focus
+                      tabIndex={0}
                       disabled={busy || !room?.nowPlaying}
                       onClick={() =>
                         control(room?.status === "playing" ? "pause" : "play")
@@ -301,6 +360,8 @@ export function RoomClient({ code }: Props) {
                     <button
                       type="button"
                       className="btn btn-ghost btn-tv"
+                      data-tv-focus
+                      tabIndex={0}
                       disabled={busy}
                       onClick={() => control("skip")}
                     >
@@ -312,9 +373,14 @@ export function RoomClient({ code }: Props) {
 
               {isHost ? (
                 <p className="tv-remote-hint">
-                  Remote: Enter / Space play · ← prev · → skip
+                  Remote: ← → move · OK play/pause · color/media keys skip
                 </p>
-              ) : null}
+              ) : (
+                <p className="tv-remote-hint">
+                  Open this room on the TV as host (Start a room from the TV), or
+                  control playback from the host phone.
+                </p>
+              )}
             </section>
 
             <aside className="tv-rail">
