@@ -1,16 +1,31 @@
 import type { Song } from "./types";
 import { isRemoteMediaEnabled } from "./media";
 
+/** Build the in-app stream URL for a karaoke file. */
+export function streamUrlForFilename(filename: string) {
+  return `/api/stream?f=${encodeURIComponent(filename)}`;
+}
+
 /**
- * Browsers play video from this app URL, not ngrok.
- * Free ngrok shows an interstitial HTML page to browsers that can't send
- * `ngrok-skip-browser-warning`, so remote TVs/phones fail on direct ngrok URLs.
+ * Prefer streaming via this app (Vercel), never raw ngrok in the browser.
+ * Free ngrok serves an HTML interstitial to phone/TV browsers → broken video.
  */
+export function playableSongUrl(song: Pick<Song, "url" | "filename"> | null | undefined) {
+  if (!song) return null;
+  if (song.filename) return streamUrlForFilename(song.filename);
+
+  const match = song.url?.match(/\/media\/([^/?#]+)/);
+  if (match?.[1]) {
+    return streamUrlForFilename(decodeURIComponent(match[1]));
+  }
+  return song.url || null;
+}
+
 export function toClientSong(song: Song): Song {
   if (!isRemoteMediaEnabled() || !song.filename) return song;
   return {
     ...song,
-    url: `/api/stream/${encodeURIComponent(song.filename)}`,
+    url: streamUrlForFilename(song.filename),
   };
 }
 

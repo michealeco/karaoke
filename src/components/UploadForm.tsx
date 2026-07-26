@@ -83,7 +83,7 @@ export function UploadForm({ onUploaded }: Props) {
         if (!data.song) throw new Error("Upload to Ubuntu failed");
         song = {
           ...data.song,
-          url: `/api/stream/${encodeURIComponent(data.song.filename)}`,
+          url: `/api/stream?f=${encodeURIComponent(data.song.filename)}`,
         };
       } else {
         const form = new FormData();

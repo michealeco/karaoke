@@ -10,6 +10,7 @@ import {
 } from "@/lib/client";
 import { readResponseJson } from "@/lib/http";
 import { useLayoutMode } from "@/lib/useLayoutMode";
+import { playableSongUrl } from "@/lib/publicMedia";
 import { SongLibrary } from "./SongLibrary";
 
 type Props = {
@@ -23,6 +24,7 @@ export function RoomClient({ code }: Props) {
   const [room, setRoom] = useState<RoomPublic | null>(null);
   const [name, setName] = useState("Guest");
   const [error, setError] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [tab, setTab] = useState<"queue" | "library">("queue");
   const [busy, setBusy] = useState(false);
   const [hudVisible, setHudVisible] = useState(true);
@@ -68,10 +70,11 @@ export function RoomClient({ code }: Props) {
     const video = videoRef.current;
     if (!video || !room) return;
 
-    const src = room.nowPlaying?.url;
+    const src = playableSongUrl(room.nowPlaying);
     if (src && video.dataset.songUrl !== src) {
       video.dataset.songUrl = src;
       video.src = src;
+      setVideoError(null);
       video.load();
       lastSeekVersion.current = -1;
     }
@@ -259,6 +262,11 @@ export function RoomClient({ code }: Props) {
                     className="stage-video"
                     playsInline
                     controls={false}
+                    onError={() =>
+                      setVideoError(
+                        "Video could not load. Soft-refresh the page after the latest deploy, then press Play again.",
+                      )
+                    }
                     onEnded={() => {
                       if (isHost) void control("skip");
                     }}
@@ -274,6 +282,8 @@ export function RoomClient({ code }: Props) {
                   </div>
                 )}
               </div>
+
+              {videoError ? <p className="form-error room-error">{videoError}</p> : null}
 
               <div className="tv-now">
                 <div>
@@ -407,6 +417,11 @@ export function RoomClient({ code }: Props) {
               className="stage-video"
               playsInline
               controls
+              onError={() =>
+                setVideoError(
+                  "Video could not load. Soft-refresh this page, then press Play again.",
+                )
+              }
               onPlay={() => {
                 if (applyingRemote.current) return;
                 void control(
@@ -434,6 +449,8 @@ export function RoomClient({ code }: Props) {
             />
           </div>
         ) : null}
+
+        {videoError ? <p className="form-error">{videoError}</p> : null}
 
         {isHost ? (
           <div className="phone-transport">
