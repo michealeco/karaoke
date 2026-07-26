@@ -163,18 +163,36 @@ export async function skipTrack(
   if (token !== room.hostToken) throw new Error("Host only");
   if (room.queue.length === 0) return room;
 
-  const next = room.currentIndex + direction;
-  if (next < 0 || next >= room.queue.length) {
-    if (direction > 0) {
+  // Skip forward: remove the current song, then play whatever lands at that index
+  if (direction > 0) {
+    if (room.currentIndex < 0 || room.currentIndex >= room.queue.length) {
+      room.queue = [];
       room.currentIndex = -1;
       room.status = "idle";
       room.positionMs = 0;
       room.seekVersion += 1;
+      return saveRoom(room);
     }
+
+    room.queue.splice(room.currentIndex, 1);
+
+    if (room.queue.length === 0 || room.currentIndex >= room.queue.length) {
+      room.currentIndex = -1;
+      room.status = "idle";
+    } else {
+      room.status = "playing";
+    }
+
+    room.positionMs = 0;
+    room.seekVersion += 1;
     return saveRoom(room);
   }
 
-  room.currentIndex = next;
+  // Prev: move back without removing (re-sing)
+  const prev = room.currentIndex - 1;
+  if (prev < 0) return room;
+
+  room.currentIndex = prev;
   room.status = "playing";
   room.positionMs = 0;
   room.seekVersion += 1;
