@@ -2,6 +2,7 @@ import { customAlphabet } from "nanoid";
 import type { QueueItem, Room, RoomPublic, RoomStatus } from "./types";
 import { deleteJson, readJson, writeJson } from "./storage";
 import { getSong, listSongs } from "./songs";
+import { toClientSong } from "./publicMedia";
 
 const roomCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 const id = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 10);
@@ -78,13 +79,15 @@ export async function enrichRoom(
 
   publicRoom.queueSongs = room.queue.map((item) => ({
     ...item,
-    song: byId.get(item.songId) ?? null,
+    song: (() => {
+      const song = byId.get(item.songId) ?? null;
+      return song ? toClientSong(song) : null;
+    })(),
   }));
 
   const current = room.queue[room.currentIndex];
-  publicRoom.nowPlaying = current
-    ? (byId.get(current.songId) ?? null)
-    : null;
+  const playing = current ? (byId.get(current.songId) ?? null) : null;
+  publicRoom.nowPlaying = playing ? toClientSong(playing) : null;
 
   return publicRoom;
 }

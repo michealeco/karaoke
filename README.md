@@ -51,7 +51,7 @@ The live site also has **How to** in the top menu (`/how-to`) with the same walk
 | Room not found | Match the 6-letter code on the TV; use the same website URL |
 | No songs | Upload MP4s in **Library** first |
 | TV looks like a phone | On home, tap **Smart TV**, then start/join again |
-| Video won’t play | Start the room from the TV (host), queue a song, press **Play** |
+| Video won’t play on another phone/TV | Wait for latest deploy — videos now stream via Vercel (`/api/stream/...`), not direct ngrok |
 | Upload fails | Media server must be online; check env vars below |
 
 ---

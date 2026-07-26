@@ -5,7 +5,7 @@ export function isRemoteMediaEnabled() {
   return Boolean(process.env.MEDIA_API_URL && process.env.MEDIA_API_SECRET);
 }
 
-function mediaApiUrl() {
+export function mediaApiUrl() {
   const base = process.env.MEDIA_API_URL?.replace(/\/$/, "");
   if (!base) {
     throw new Error(

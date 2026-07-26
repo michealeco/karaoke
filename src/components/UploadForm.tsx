@@ -81,7 +81,10 @@ export function UploadForm({ onUploaded }: Props) {
         const data = await readResponseJson<{ song?: Song; error?: string }>(res);
         if (!res.ok) throw new Error(data.error || "Upload to Ubuntu failed");
         if (!data.song) throw new Error("Upload to Ubuntu failed");
-        song = data.song;
+        song = {
+          ...data.song,
+          url: `/api/stream/${encodeURIComponent(data.song.filename)}`,
+        };
       } else {
         const form = new FormData();
         form.set("title", title.trim());

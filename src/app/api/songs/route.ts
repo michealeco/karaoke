@@ -6,6 +6,7 @@ import {
   isLibraryAdminAuthorized,
   libraryAdminUnauthorized,
 } from "@/lib/libraryAdmin";
+import { toClientSongs } from "@/lib/publicMedia";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
     const q = searchParams.get("q") ?? "";
     const songs = q ? await searchSongs(q) : await listSongs();
     return NextResponse.json({
-      songs,
+      songs: toClientSongs(songs),
       mode: songsStorageMode(),
       blobEnabled: false,
       remoteMedia: isRemoteMediaEnabled(),
